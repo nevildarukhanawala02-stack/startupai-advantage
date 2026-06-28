@@ -16,22 +16,19 @@ RUN pnpm install --frozen-lockfile
 # Copy source
 COPY . .
 
-# Build
+# Build - ensure vite is not bundled
 RUN pnpm build
 
-# Production stage
+# Production stage - only copy the bundled dist, no node_modules
 FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install only production dependencies (minimal)
+RUN npm install -g node-gyp
 
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/pnpm-lock.yaml ./
-COPY --from=builder /app/patches ./patches/
-
-RUN pnpm install --frozen-lockfile --prod
 
 EXPOSE 3000
 
