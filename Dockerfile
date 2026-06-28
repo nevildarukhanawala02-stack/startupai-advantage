@@ -19,19 +19,19 @@ COPY . .
 # Build - ensure vite is not bundled
 RUN pnpm build
 
-# Production stage - copy dist and install production dependencies
+# Production stage - copy dist and necessary runtime files
 FROM node:22-alpine AS runner
 
 WORKDIR /app
 
-# Install pnpm for production dependency installation
+# Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-# Copy package files from builder
+# Copy package files
 COPY --from=builder /app/package.json /app/pnpm-lock.yaml ./
 
-# Install only production dependencies
-RUN pnpm install --frozen-lockfile --prod
+# Copy node_modules from builder (includes all dependencies)
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy the built application
 COPY --from=builder /app/dist ./dist
