@@ -1,0 +1,1 @@
+ALTER TABLE `blog_posts` ADD `parent_series` varchar(255);
