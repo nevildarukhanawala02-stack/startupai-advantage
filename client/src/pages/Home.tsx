@@ -809,7 +809,7 @@ function DashboardShowcase() {
                     <div className="w-3 h-3 rounded-full border border-[#0BA5DC]/60 flex items-center justify-center">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#0BA5DC]/60" />
                     </div>
-                    <span className="text-white/60 text-xs font-mono">www.startupaiadvantage.com"revenue" ? "dashboard" : tab.id}</span>
+                    <span className="text-white/60 text-xs font-mono">www.startupaiadvantage.com/{tab.id === "revenue" ? "dashboard" : tab.id}</span>
                   </div>
                 </div>
                 {/* Live badge */}
