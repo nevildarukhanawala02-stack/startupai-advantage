@@ -48,23 +48,16 @@ class SDKServer {
   async verifySession(
     cookieValue: string | undefined | null
   ): Promise<{ openId: string; appId: string; name: string } | null> {
-    if (!cookieValue) {
-      console.warn("[Auth] Missing session cookie");
-      return null;
-    }
+    if (!cookieValue) return null;
     try {
       const secretKey = this.getSessionSecret();
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"],
       });
       const { openId, appId, name } = payload as Record<string, unknown>;
-      if (!isNonEmptyString(openId) || !isNonEmptyString(appId) || !isNonEmptyString(name)) {
-        console.warn("[Auth] Session payload missing required fields");
-        return null;
-      }
+      if (!isNonEmptyString(openId) || !isNonEmptyString(appId) || !isNonEmptyString(name)) return null;
       return { openId, appId, name };
-    } catch (error) {
-      console.warn("[Auth] Session verification failed", String(error));
+    } catch {
       return null;
     }
   }
@@ -74,9 +67,26 @@ class SDKServer {
     const sessionCookie = cookies.get(COOKIE_NAME);
     const session = await this.verifySession(sessionCookie);
     if (!session) throw ForbiddenError("Invalid session cookie");
+
+    // For the admin-user openId, synthesize the user object if DB lookup fails
     const user = await db.getUserByOpenId(session.openId);
-    if (!user) throw ForbiddenError("User not found");
-    return user;
+    if (user) return user;
+
+    if (session.openId === "admin-user") {
+      return {
+        id: 0,
+        openId: "admin-user",
+        name: "Admin",
+        email: ENV.adminEmail,
+        loginMethod: "password",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      } as User;
+    }
+
+    throw ForbiddenError("User not found");
   }
 }
 

@@ -11,8 +11,6 @@ export function registerOAuthRoutes(app: Express) {
     try {
       const { email, password } = req.body as { email?: string; password?: string };
 
-      console.log("[Auth] Login attempt for:", email);
-
       if (!email || !password) {
         res.status(400).json({ error: "Email and password are required" });
         return;
@@ -21,35 +19,32 @@ export function registerOAuthRoutes(app: Express) {
       const adminEmail = ENV.adminEmail;
       const adminPassword = ENV.adminPassword;
 
-      console.log("[Auth] Admin email configured:", adminEmail ? "yes" : "no");
-      console.log("[Auth] Admin password configured:", adminPassword ? "yes" : "no");
-
       if (!adminEmail || !adminPassword) {
         console.error("[Auth] ADMIN_EMAIL or ADMIN_PASSWORD not set in environment");
         res.status(500).json({ error: "Auth not configured" });
         return;
       }
 
-      const emailMatch = email.trim() === adminEmail.trim();
-      const passwordMatch = password === adminPassword;
-
-      console.log("[Auth] Email match:", emailMatch);
-      console.log("[Auth] Password match:", passwordMatch);
-
-      if (!emailMatch || !passwordMatch) {
+      if (email.trim() !== adminEmail.trim() || password !== adminPassword) {
         res.status(401).json({ error: "Invalid credentials" });
         return;
       }
 
+      // Try to upsert user in DB — but don't fail login if DB write fails
       const openId = "admin-user";
-      await db.upsertUser({
-        openId,
-        name: "Admin",
-        email: adminEmail,
-        loginMethod: "password",
-        role: "admin",
-        lastSignedIn: new Date(),
-      });
+      try {
+        await db.upsertUser({
+          openId,
+          name: "Admin",
+          email: adminEmail,
+          loginMethod: "password",
+          role: "admin",
+          lastSignedIn: new Date(),
+        });
+      } catch (dbError) {
+        console.error("[Auth] DB upsert failed (non-fatal):", dbError);
+        // Continue — session token works without DB record
+      }
 
       const sessionToken = await sdk.createSessionToken(openId, {
         name: "Admin",
