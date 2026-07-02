@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1770884724730,
+      "tag": "0000_windy_saracen",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1770885082810,
+      "tag": "0001_milky_shape",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1771023670996,
+      "tag": "0002_thin_sersi",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1780779434888,
+      "tag": "0003_lyrical_nuke",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1780782338417,
+      "tag": "0004_huge_secret_warriors",
+      "breakpoints": true
+    }
+  ]
+}
