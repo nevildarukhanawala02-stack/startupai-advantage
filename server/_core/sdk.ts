@@ -10,12 +10,6 @@ import { ENV } from "./env";
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
 
-export type SessionPayload = {
-  openId: string;
-  appId: string;
-  name: string;
-};
-
 class SDKServer {
   private parseCookies(cookieHeader: string | undefined) {
     if (!cookieHeader) return new Map<string, string>();
@@ -29,7 +23,7 @@ class SDKServer {
 
   async createSessionToken(
     openId: string,
-    options: { expiresInMs?: number; name?: string } = {}
+    options: { expiresInMs?: number; name?: string; role?: string; email?: string } = {}
   ): Promise<string> {
     const issuedAt = Date.now();
     const expiresInMs = options.expiresInMs ?? ONE_YEAR_MS;
@@ -39,6 +33,8 @@ class SDKServer {
       openId,
       appId: "saa",
       name: options.name || "",
+      role: options.role || "user",
+      email: options.email || "",
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setExpirationTime(expirationSeconds)
@@ -47,16 +43,20 @@ class SDKServer {
 
   async verifySession(
     cookieValue: string | undefined | null
-  ): Promise<{ openId: string; appId: string; name: string } | null> {
+  ): Promise<{ openId: string; appId: string; name: string; role?: string; email?: string } | null> {
     if (!cookieValue) return null;
     try {
       const secretKey = this.getSessionSecret();
       const { payload } = await jwtVerify(cookieValue, secretKey, {
         algorithms: ["HS256"],
       });
-      const { openId, appId, name } = payload as Record<string, unknown>;
+      const { openId, appId, name, role, email } = payload as Record<string, unknown>;
       if (!isNonEmptyString(openId) || !isNonEmptyString(appId) || !isNonEmptyString(name)) return null;
-      return { openId, appId, name };
+      return { 
+        openId, appId, name,
+        role: typeof role === "string" ? role : undefined,
+        email: typeof email === "string" ? email : undefined,
+      };
     } catch {
       return null;
     }
@@ -68,16 +68,13 @@ class SDKServer {
     const session = await this.verifySession(sessionCookie);
     if (!session) throw ForbiddenError("Invalid session cookie");
 
-    // For the admin-user openId, synthesize the user object if DB lookup fails
-    const user = await db.getUserByOpenId(session.openId);
-    if (user) return user;
-
-    if (session.openId === "admin-user") {
+    // If the JWT has role=admin embedded, return synthesized user without DB lookup
+    if (session.role === "admin") {
       return {
-        id: 0,
-        openId: "admin-user",
-        name: "Admin",
-        email: ENV.adminEmail,
+        id: 1,
+        openId: session.openId,
+        name: session.name,
+        email: session.email || ENV.adminEmail,
         loginMethod: "password",
         role: "admin",
         createdAt: new Date(),
@@ -86,7 +83,10 @@ class SDKServer {
       } as User;
     }
 
-    throw ForbiddenError("User not found");
+    // For regular users, look up in DB
+    const user = await db.getUserByOpenId(session.openId);
+    if (!user) throw ForbiddenError("User not found");
+    return user;
   }
 }
 

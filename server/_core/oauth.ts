@@ -1,12 +1,10 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import type { Express, Request, Response } from "express";
-import * as db from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 import { ENV } from "./env";
 
 export function registerOAuthRoutes(app: Express) {
-  // POST /api/auth/login — email + password
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body as { email?: string; password?: string };
@@ -20,7 +18,6 @@ export function registerOAuthRoutes(app: Express) {
       const adminPassword = ENV.adminPassword;
 
       if (!adminEmail || !adminPassword) {
-        console.error("[Auth] ADMIN_EMAIL or ADMIN_PASSWORD not set in environment");
         res.status(500).json({ error: "Auth not configured" });
         return;
       }
@@ -30,24 +27,11 @@ export function registerOAuthRoutes(app: Express) {
         return;
       }
 
-      // Try to upsert user in DB — but don't fail login if DB write fails
-      const openId = "admin-user";
-      try {
-        await db.upsertUser({
-          openId,
-          name: "Admin",
-          email: adminEmail,
-          loginMethod: "password",
-          role: "admin",
-          lastSignedIn: new Date(),
-        });
-      } catch (dbError) {
-        console.error("[Auth] DB upsert failed (non-fatal):", dbError);
-        // Continue — session token works without DB record
-      }
-
-      const sessionToken = await sdk.createSessionToken(openId, {
+      // Embed role directly in JWT — no DB write needed
+      const sessionToken = await sdk.createSessionToken("admin-user", {
         name: "Admin",
+        role: "admin",
+        email: adminEmail,
         expiresInMs: ONE_YEAR_MS,
       });
 
@@ -60,7 +44,6 @@ export function registerOAuthRoutes(app: Express) {
     }
   });
 
-  // POST /api/auth/logout
   app.post("/api/auth/logout", (req: Request, res: Response) => {
     const cookieOptions = getSessionCookieOptions(req);
     res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
