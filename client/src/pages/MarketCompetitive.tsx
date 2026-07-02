@@ -27,7 +27,7 @@ export default function MarketCompetitive() {
         <div 
           className="absolute inset-0 opacity-30"
           style={{
-            backgroundImage: `url('/images/market-competitive-bg.png')`,
+            backgroundImage: `url('/images/market-competitive-bg.webp')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}

@@ -21,7 +21,7 @@ export default function Manufacturing() {
         <div 
           className="absolute inset-0 opacity-30"
           style={{
-            backgroundImage: `url('/images/b2b-services-bg.png')`,
+            backgroundImage: `url('/images/b2b-services-bg.webp')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}

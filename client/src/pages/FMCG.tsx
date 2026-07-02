@@ -21,7 +21,7 @@ export default function FMCG() {
         <div 
           className="absolute inset-0 opacity-30"
           style={{
-            backgroundImage: `url('/images/fmcg-bg.png')`,
+            backgroundImage: `url('/images/fmcg-bg.webp')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}

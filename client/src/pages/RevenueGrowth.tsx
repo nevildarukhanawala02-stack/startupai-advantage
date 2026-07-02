@@ -27,7 +27,7 @@ export default function RevenueGrowth() {
         <div 
           className="absolute inset-0 opacity-30"
           style={{
-            backgroundImage: `url('/images/revenue-growth-bg.png')`,
+            backgroundImage: `url('/images/revenue-growth-bg.webp')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}

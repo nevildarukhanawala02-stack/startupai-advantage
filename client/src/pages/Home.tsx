@@ -15,7 +15,7 @@ export default function Home() {
       <section 
         className="relative min-h-[90vh] flex items-center overflow-hidden pt-16"
         style={{
-          backgroundImage: `url('/images/home-hero-bg.png')`,
+          backgroundImage: `url('/images/home-hero-bg.webp')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'

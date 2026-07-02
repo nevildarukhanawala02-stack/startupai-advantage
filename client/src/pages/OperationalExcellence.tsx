@@ -27,7 +27,7 @@ export default function OperationalExcellence() {
         <div 
           className="absolute inset-0 opacity-30"
           style={{
-            backgroundImage: `url('/images/operational-excellence-bg.png')`,
+            backgroundImage: `url('/images/operational-excellence-bg.webp')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
           }}
