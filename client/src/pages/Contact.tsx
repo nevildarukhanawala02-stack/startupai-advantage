@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowRight, Mail, Phone, MapPin, Send } from "lucide-react";
 
 import { trpc } from "@/lib/trpc";
+import { trackContactSubmit } from "@/lib/analytics";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 
@@ -23,6 +24,7 @@ export default function Contact() {
 
   const contactMutation = trpc.contact.submit.useMutation({
     onSuccess: () => {
+      trackContactSubmit();
       alert("Message sent! We'll get back to you within 24 hours.");
       setFormData({
         name: "",

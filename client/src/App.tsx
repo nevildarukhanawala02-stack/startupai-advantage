@@ -31,12 +31,15 @@ import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import WhatsAppButton from "./components/WhatsAppButton";
 import ScrollToTop from "./components/ScrollToTop";
+import RouteTracker from "./components/RouteTracker";
+import AdminKpiDashboard from "./pages/AdminKpiDashboard";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <>
     <ScrollToTop />
+    <RouteTracker />
     <Switch>
       <Route path={"/"} component={Home} />
       
@@ -64,6 +67,7 @@ function Router() {
       <Route path="/admin" component={Admin} />
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/leads" component={AdminLeads} />
+      <Route path="/admin/analytics" component={AdminKpiDashboard} />
       
       {/* Blog */}
       <Route path="/blog" component={Blog} />

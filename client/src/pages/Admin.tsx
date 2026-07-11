@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { Users, Mail, FileText, ShieldAlert, BarChart3 } from "lucide-react";
+import { Users, Mail, FileText, ShieldAlert, BarChart3, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -38,6 +38,13 @@ export default function Admin() {
   }
 
   const sections = [
+    {
+      title: "KPI Dashboard",
+      description: "Visits, funnel, and top blog posts driving contact form leads",
+      icon: TrendingUp,
+      href: "/admin/analytics",
+      color: "text-blue-500",
+    },
     {
       title: "Leads",
       description: "View and export all email leads captured from the site",

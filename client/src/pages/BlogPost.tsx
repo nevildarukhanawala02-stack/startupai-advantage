@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Link, useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { trackBlogPostView } from "@/lib/analytics";
 import { User, ArrowLeft, BookOpen, Share2 } from "lucide-react";
 
 function getTypeLabel(type: string) {
@@ -178,6 +180,12 @@ export default function BlogPost() {
     { slug: params.slug || "", series: post?.series ?? null },
     { enabled: !!post?.series && !!params.slug }
   );
+
+  useEffect(() => {
+    if (post?.id) {
+      trackBlogPostView(post.id);
+    }
+  }, [post?.id]);
 
   if (isLoading) {
     return (

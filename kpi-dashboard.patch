@@ -1,0 +1,593 @@
+diff --git a/client/src/App.tsx b/client/src/App.tsx
+index 9edf023..15c5898 100644
+--- a/client/src/App.tsx
++++ b/client/src/App.tsx
+@@ -31,12 +31,15 @@ import Blog from "./pages/Blog";
+ import BlogPost from "./pages/BlogPost";
+ import WhatsAppButton from "./components/WhatsAppButton";
+ import ScrollToTop from "./components/ScrollToTop";
++import RouteTracker from "./components/RouteTracker";
++import AdminKpiDashboard from "./pages/AdminKpiDashboard";
+ 
+ function Router() {
+   // make sure to consider if you need authentication for certain routes
+   return (
+     <>
+     <ScrollToTop />
++    <RouteTracker />
+     <Switch>
+       <Route path={"/"} component={Home} />
+       
+@@ -64,6 +67,7 @@ function Router() {
+       <Route path="/admin" component={Admin} />
+       <Route path="/admin/login" component={AdminLogin} />
+       <Route path="/admin/leads" component={AdminLeads} />
++      <Route path="/admin/analytics" component={AdminKpiDashboard} />
+       
+       {/* Blog */}
+       <Route path="/blog" component={Blog} />
+diff --git a/client/src/components/RouteTracker.tsx b/client/src/components/RouteTracker.tsx
+new file mode 100644
+index 0000000..038dbb7
+--- /dev/null
++++ b/client/src/components/RouteTracker.tsx
+@@ -0,0 +1,17 @@
++import { useEffect } from "react";
++import { useLocation } from "wouter";
++import { trackPageView } from "@/lib/analytics";
++
++/**
++ * Fires a page_view analytics event on every route change.
++ * Mount once near the top of the app. Renders nothing.
++ */
++export default function RouteTracker() {
++  const [location] = useLocation();
++
++  useEffect(() => {
++    trackPageView(location);
++  }, [location]);
++
++  return null;
++}
+diff --git a/client/src/lib/analytics.ts b/client/src/lib/analytics.ts
+new file mode 100644
+index 0000000..0790fe0
+--- /dev/null
++++ b/client/src/lib/analytics.ts
+@@ -0,0 +1,71 @@
++import { createTRPCClient, httpBatchLink } from "@trpc/client";
++import superjson from "superjson";
++import type { AppRouter } from "../../../server/routers";
++
++// Standalone (non-React) tRPC client so tracking calls can fire from
++// anywhere — route changes, effects, callbacks — without needing a
++// mounted query hook. Mirrors the link setup in main.tsx.
++const analyticsClient = createTRPCClient<AppRouter>({
++  links: [
++    httpBatchLink({
++      url: "/api/trpc",
++      transformer: superjson,
++      fetch(input, init) {
++        return globalThis.fetch(input, {
++          ...(init ?? {}),
++          credentials: "include",
++        });
++      },
++    }),
++  ],
++});
++
++const SESSION_KEY = "saa_session_id";
++
++export function getSessionId(): string {
++  if (typeof window === "undefined") return "";
++  let id = window.localStorage.getItem(SESSION_KEY);
++  if (!id) {
++    id = crypto.randomUUID();
++    window.localStorage.setItem(SESSION_KEY, id);
++  }
++  return id;
++}
++
++type TrackInput = {
++  eventType: string;
++  entityId?: number;
++  entityType?: string;
++  pagePath?: string;
++};
++
++/**
++ * Fire-and-forget analytics tracking. Never blocks the UI and never
++ * surfaces errors — a failed tracking call should be invisible.
++ */
++function track({ eventType, entityId, entityType, pagePath }: TrackInput) {
++  if (typeof window === "undefined") return;
++  analyticsClient.analytics.track
++    .mutate({
++      sessionId: getSessionId(),
++      eventType,
++      entityId,
++      entityType,
++      pagePath: pagePath ?? window.location.pathname,
++    })
++    .catch(() => {
++      // Silently ignore — analytics should never break the app
++    });
++}
++
++export function trackPageView(pagePath?: string) {
++  track({ eventType: "page_view", pagePath });
++}
++
++export function trackBlogPostView(postId: number, pagePath?: string) {
++  track({ eventType: "blog_post_view", entityId: postId, entityType: "blog_post", pagePath });
++}
++
++export function trackContactSubmit() {
++  track({ eventType: "contact_form_submit" });
++}
+diff --git a/client/src/pages/Admin.tsx b/client/src/pages/Admin.tsx
+index 7722527..8bb3b04 100644
+--- a/client/src/pages/Admin.tsx
++++ b/client/src/pages/Admin.tsx
+@@ -2,7 +2,7 @@ import { trpc } from "@/lib/trpc";
+ import { useLocation } from "wouter";
+ import { useEffect } from "react";
+ import { toast } from "sonner";
+-import { Users, Mail, FileText, ShieldAlert, BarChart3 } from "lucide-react";
++import { Users, Mail, FileText, ShieldAlert, BarChart3, TrendingUp } from "lucide-react";
+ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+ import { Button } from "@/components/ui/button";
+ 
+@@ -38,6 +38,13 @@ export default function Admin() {
+   }
+ 
+   const sections = [
++    {
++      title: "KPI Dashboard",
++      description: "Visits, funnel, and top blog posts driving contact form leads",
++      icon: TrendingUp,
++      href: "/admin/analytics",
++      color: "text-blue-500",
++    },
+     {
+       title: "Leads",
+       description: "View and export all email leads captured from the site",
+diff --git a/client/src/pages/AdminKpiDashboard.tsx b/client/src/pages/AdminKpiDashboard.tsx
+new file mode 100644
+index 0000000..84b287b
+--- /dev/null
++++ b/client/src/pages/AdminKpiDashboard.tsx
+@@ -0,0 +1,157 @@
++import { useState, useEffect } from "react";
++import { trpc } from "@/lib/trpc";
++import { useLocation } from "wouter";
++import { toast } from "sonner";
++import { ShieldAlert, Users, FileText, Mail, Percent, BookOpen } from "lucide-react";
++import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
++import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
++import { Progress } from "@/components/ui/progress";
++
++const METRIC_CARDS: Array<{
++  key: "visits" | "pagesPerVisit" | "blogViewers" | "contactSubmissions" | "conversionRate";
++  label: string;
++  icon: typeof Users;
++  format: (v: number) => string;
++}> = [
++  { key: "visits", label: "Visits", icon: Users, format: v => v.toLocaleString() },
++  { key: "pagesPerVisit", label: "Pages / Visit", icon: FileText, format: v => v.toFixed(1) },
++  { key: "blogViewers", label: "Read a Blog Post", icon: BookOpen, format: v => v.toLocaleString() },
++  { key: "contactSubmissions", label: "Contact Submissions", icon: Mail, format: v => v.toLocaleString() },
++  { key: "conversionRate", label: "Conversion Rate", icon: Percent, format: v => `${v}%` },
++];
++
++export default function AdminKpiDashboard() {
++  const { data: user, isLoading: authLoading } = trpc.auth.me.useQuery();
++  const [, setLocation] = useLocation();
++  const [period, setPeriod] = useState<"week" | "month">("week");
++
++  const { data: dashboard, isLoading } = trpc.analytics.dashboard.useQuery(
++    { period },
++    { enabled: user?.role === "admin" }
++  );
++
++  useEffect(() => {
++    if (!authLoading && user?.role !== "admin") {
++      toast.error("Unauthorized: Admin access required");
++      setLocation("/admin/login");
++    }
++  }, [user, authLoading, setLocation]);
++
++  if (authLoading) {
++    return (
++      <div className="container mx-auto py-12 flex items-center justify-center min-h-[400px]">
++        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500" />
++      </div>
++    );
++  }
++
++  if (user?.role !== "admin") {
++    return (
++      <div className="container mx-auto py-12 flex items-center justify-center min-h-[400px]">
++        <div className="text-center">
++          <ShieldAlert className="mx-auto h-14 w-14 text-destructive mb-4" />
++          <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
++          <p className="text-muted-foreground">You don't have permission to access this page.</p>
++        </div>
++      </div>
++    );
++  }
++
++  const maxFunnelCount = dashboard?.funnel[0]?.count || 1;
++
++  return (
++    <div className="container mx-auto py-12 max-w-5xl">
++      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
++        <div>
++          <h1 className="text-3xl font-bold mb-2">KPI Dashboard</h1>
++          <p className="text-muted-foreground">
++            Visits, funnel, and the blog posts driving contact form leads
++          </p>
++        </div>
++        <Tabs value={period} onValueChange={v => setPeriod(v as "week" | "month")}>
++          <TabsList>
++            <TabsTrigger value="week">This week</TabsTrigger>
++            <TabsTrigger value="month">This month</TabsTrigger>
++          </TabsList>
++        </Tabs>
++      </div>
++
++      {isLoading || !dashboard ? (
++        <div className="flex items-center justify-center min-h-[300px]">
++          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500" />
++        </div>
++      ) : (
++        <div className="space-y-8">
++          {/* Metric cards */}
++          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
++            {METRIC_CARDS.map(({ key, label, icon: Icon, format }) => (
++              <Card key={key}>
++                <CardContent className="pt-6">
++                  <Icon className="h-5 w-5 text-cyan-500 mb-2" />
++                  <div className="text-2xl font-bold">{format(dashboard[key] as number)}</div>
++                  <div className="text-xs text-muted-foreground mt-1">{label}</div>
++                </CardContent>
++              </Card>
++            ))}
++          </div>
++
++          {/* Funnel */}
++          <Card>
++            <CardHeader>
++              <CardTitle>Funnel</CardTitle>
++              <CardDescription>How visitors move from arriving to becoming a lead</CardDescription>
++            </CardHeader>
++            <CardContent className="space-y-4">
++              {dashboard.funnel.map((stage, i) => (
++                <div key={stage.stage}>
++                  <div className="flex items-center justify-between mb-1 text-sm">
++                    <span className={i === dashboard.funnel.length - 1 ? "font-semibold text-cyan-500" : ""}>
++                      {stage.stage}
++                    </span>
++                    <span className="text-muted-foreground">{stage.count.toLocaleString()}</span>
++                  </div>
++                  <Progress
++                    value={maxFunnelCount > 0 ? (stage.count / maxFunnelCount) * 100 : 0}
++                    className={i === dashboard.funnel.length - 1 ? "[&>div]:bg-cyan-500" : ""}
++                  />
++                </div>
++              ))}
++            </CardContent>
++          </Card>
++
++          {/* Top blog posts */}
++          <Card>
++            <CardHeader>
++              <CardTitle>Top Blog Posts</CardTitle>
++              <CardDescription>Most-read posts by unique visitors, this {period}</CardDescription>
++            </CardHeader>
++            <CardContent>
++              {dashboard.topBlogPosts.length === 0 ? (
++                <p className="text-sm text-muted-foreground py-6 text-center">
++                  No blog reads in this period yet
++                </p>
++              ) : (
++                <div className="space-y-3">
++                  {dashboard.topBlogPosts.map((post, i) => (
++                    <div
++                      key={post.id}
++                      className="flex items-center justify-between py-2 border-b last:border-0"
++                    >
++                      <div className="flex items-center gap-3 min-w-0">
++                        <span className="text-sm font-semibold text-muted-foreground w-5">{i + 1}</span>
++                        <span className="truncate">{post.title}</span>
++                      </div>
++                      <span className="text-sm font-medium text-cyan-500 shrink-0 ml-4">
++                        {post.views.toLocaleString()} views
++                      </span>
++                    </div>
++                  ))}
++                </div>
++              )}
++            </CardContent>
++          </Card>
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/client/src/pages/BlogPost.tsx b/client/src/pages/BlogPost.tsx
+index ae8038d..86c95b4 100644
+--- a/client/src/pages/BlogPost.tsx
++++ b/client/src/pages/BlogPost.tsx
+@@ -1,7 +1,9 @@
++import { useEffect } from "react";
+ import Header from "@/components/Header";
+ import Footer from "@/components/Footer";
+ import { Link, useParams } from "wouter";
+ import { trpc } from "@/lib/trpc";
++import { trackBlogPostView } from "@/lib/analytics";
+ import { User, ArrowLeft, BookOpen, Share2 } from "lucide-react";
+ 
+ function getTypeLabel(type: string) {
+@@ -179,6 +181,12 @@ export default function BlogPost() {
+     { enabled: !!post?.series && !!params.slug }
+   );
+ 
++  useEffect(() => {
++    if (post?.id) {
++      trackBlogPostView(post.id);
++    }
++  }, [post?.id]);
++
+   if (isLoading) {
+     return (
+       <div className="min-h-screen flex flex-col">
+diff --git a/client/src/pages/Contact.tsx b/client/src/pages/Contact.tsx
+index b019e85..ea53240 100644
+--- a/client/src/pages/Contact.tsx
++++ b/client/src/pages/Contact.tsx
+@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
+ import { ArrowRight, Mail, Phone, MapPin, Send } from "lucide-react";
+ 
+ import { trpc } from "@/lib/trpc";
++import { trackContactSubmit } from "@/lib/analytics";
+ import Header from "@/components/Header";
+ import Footer from "@/components/Footer";
+ 
+@@ -23,6 +24,7 @@ export default function Contact() {
+ 
+   const contactMutation = trpc.contact.submit.useMutation({
+     onSuccess: () => {
++      trackContactSubmit();
+       alert("Message sent! We'll get back to you within 24 hours.");
+       setFormData({
+         name: "",
+diff --git a/drizzle/0005_analytics_events.sql b/drizzle/0005_analytics_events.sql
+new file mode 100644
+index 0000000..2f3bb8f
+--- /dev/null
++++ b/drizzle/0005_analytics_events.sql
+@@ -0,0 +1,14 @@
++CREATE TABLE `analytics_events` (
++	`id` int AUTO_INCREMENT NOT NULL,
++	`session_id` varchar(64) NOT NULL,
++	`event_type` varchar(64) NOT NULL,
++	`entity_id` int,
++	`entity_type` varchar(32),
++	`page_path` varchar(255),
++	`created_at` timestamp NOT NULL DEFAULT (now()),
++	CONSTRAINT `analytics_events_id` PRIMARY KEY(`id`)
++);
++--> statement-breakpoint
++CREATE INDEX `analytics_events_event_type_created_at_idx` ON `analytics_events` (`event_type`,`created_at`);
++--> statement-breakpoint
++CREATE INDEX `analytics_events_session_id_idx` ON `analytics_events` (`session_id`);
+diff --git a/drizzle/schema.ts b/drizzle/schema.ts
+index 7376680..30fce57 100644
+--- a/drizzle/schema.ts
++++ b/drizzle/schema.ts
+@@ -100,4 +100,24 @@ export const blogPosts = mysqlTable("blog_posts", {
+ });
+ 
+ export type BlogPost = typeof blogPosts.$inferSelect;
+-export type InsertBlogPost = typeof blogPosts.$inferInsert;
+\ No newline at end of file
++export type InsertBlogPost = typeof blogPosts.$inferInsert;
++
++/**
++ * Lightweight self-hosted analytics events (KPI dashboard).
++ * One generic row per tracked moment: a page view, a blog post read,
++ * or a funnel-stage action. Real conversions (contact form submissions)
++ * live in `contact_submissions` — this table is for behavior, not
++ * source-of-truth financial/lead data.
++ */
++export const analyticsEvents = mysqlTable("analytics_events", {
++  id: int("id").autoincrement().primaryKey(),
++  sessionId: varchar("session_id", { length: 64 }).notNull(),
++  eventType: varchar("event_type", { length: 64 }).notNull(), // e.g. 'page_view', 'blog_post_view'
++  entityId: int("entity_id"), // optional: e.g. blog post id this event relates to
++  entityType: varchar("entity_type", { length: 32 }), // optional: e.g. 'blog_post'
++  pagePath: varchar("page_path", { length: 255 }),
++  createdAt: timestamp("created_at").defaultNow().notNull(),
++});
++
++export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
++export type InsertAnalyticsEvent = typeof analyticsEvents.$inferInsert;
+\ No newline at end of file
+diff --git a/server/db.ts b/server/db.ts
+index 6c2cdea..406aaed 100644
+--- a/server/db.ts
++++ b/server/db.ts
+@@ -1,6 +1,6 @@
+-import { eq, desc, and, ne } from "drizzle-orm";
++import { eq, desc, and, ne, gte, sql, inArray } from "drizzle-orm";
+ import { drizzle } from "drizzle-orm/mysql2";
+-import { InsertUser, users, consultationRequests, InsertConsultationRequest, contactSubmissions, InsertContactSubmission, leads, InsertLead, blogPosts, InsertBlogPost } from "../drizzle/schema";
++import { InsertUser, users, consultationRequests, InsertConsultationRequest, contactSubmissions, InsertContactSubmission, leads, InsertLead, blogPosts, InsertBlogPost, analyticsEvents, InsertAnalyticsEvent } from "../drizzle/schema";
+ 
+ 
+ let _db: ReturnType<typeof drizzle> | null = null;
+@@ -216,3 +216,116 @@ export async function createManyBlogPosts(posts: InsertBlogPost[]) {
+   const result = await db.insert(blogPosts).values(posts);
+   return result;
+ }
++
++// Analytics (KPI Dashboard)
++
++/**
++ * Fire-and-forget event write. Never throws — a failed tracking call
++ * should be invisible to the visitor and to the caller.
++ */
++export async function trackEvent(data: InsertAnalyticsEvent) {
++  const db = await getDb();
++  if (!db) return;
++  try {
++    await db.insert(analyticsEvents).values(data);
++  } catch (error) {
++    console.warn("[Analytics] Failed to track event:", error);
++  }
++}
++
++export async function getKpiDashboard(period: "week" | "month") {
++  const days = period === "week" ? 7 : 30;
++  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
++
++  const empty = {
++    period,
++    visits: 0,
++    pageViews: 0,
++    pagesPerVisit: 0,
++    blogViewers: 0,
++    contactSubmissions: 0,
++    conversionRate: 0,
++    funnel: [
++      { stage: "Visited site", count: 0 },
++      { stage: "Read a blog post", count: 0 },
++      { stage: "Submitted contact form", count: 0 },
++    ],
++    topBlogPosts: [] as { id: number; title: string; slug: string; views: number }[],
++  };
++
++  const db = await getDb();
++  if (!db) return empty;
++
++  const [visitsRow] = await db
++    .select({
++      visits: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
++      pageViews: sql<number>`COUNT(*)`,
++    })
++    .from(analyticsEvents)
++    .where(and(eq(analyticsEvents.eventType, "page_view"), gte(analyticsEvents.createdAt, since)));
++
++  const [blogRow] = await db
++    .select({
++      blogViewers: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
++    })
++    .from(analyticsEvents)
++    .where(and(eq(analyticsEvents.eventType, "blog_post_view"), gte(analyticsEvents.createdAt, since)));
++
++  // Real conversion table — never duplicated in analytics_events
++  const [contactRow] = await db
++    .select({ count: sql<number>`COUNT(*)` })
++    .from(contactSubmissions)
++    .where(gte(contactSubmissions.createdAt, since));
++
++  const leaderboard = await db
++    .select({
++      entityId: analyticsEvents.entityId,
++      views: sql<number>`COUNT(*)`,
++    })
++    .from(analyticsEvents)
++    .where(and(eq(analyticsEvents.eventType, "blog_post_view"), gte(analyticsEvents.createdAt, since)))
++    .groupBy(analyticsEvents.entityId)
++    .orderBy(desc(sql`COUNT(*)`))
++    .limit(5);
++
++  const postIds = leaderboard.map(l => l.entityId).filter((id): id is number => id !== null);
++  const posts = postIds.length
++    ? await db
++        .select({ id: blogPosts.id, title: blogPosts.title, slug: blogPosts.slug })
++        .from(blogPosts)
++        .where(inArray(blogPosts.id, postIds))
++    : [];
++
++  const topBlogPosts = leaderboard
++    .filter(l => l.entityId !== null)
++    .map(l => {
++      const post = posts.find(p => p.id === l.entityId);
++      return {
++        id: l.entityId as number,
++        title: post?.title ?? "Unknown post",
++        slug: post?.slug ?? "",
++        views: Number(l.views),
++      };
++    });
++
++  const visits = Number(visitsRow?.visits ?? 0);
++  const pageViews = Number(visitsRow?.pageViews ?? 0);
++  const blogViewers = Number(blogRow?.blogViewers ?? 0);
++  const contactCount = Number(contactRow?.count ?? 0);
++
++  return {
++    period,
++    visits,
++    pageViews,
++    pagesPerVisit: visits > 0 ? Math.round((pageViews / visits) * 10) / 10 : 0,
++    blogViewers,
++    contactSubmissions: contactCount,
++    conversionRate: visits > 0 ? Math.round((contactCount / visits) * 1000) / 10 : 0,
++    funnel: [
++      { stage: "Visited site", count: visits },
++      { stage: "Read a blog post", count: blogViewers },
++      { stage: "Submitted contact form", count: contactCount },
++    ],
++    topBlogPosts,
++  };
++}
+diff --git a/server/routers.ts b/server/routers.ts
+index 9dbdc2b..7812205 100644
+--- a/server/routers.ts
++++ b/server/routers.ts
+@@ -1,9 +1,9 @@
+ import { COOKIE_NAME } from "@shared/const";
+ import { getSessionCookieOptions } from "./_core/cookies";
+ import { systemRouter } from "./_core/systemRouter";
+-import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
++import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
+ import { z } from "zod";
+-import { createConsultationRequest, getAllConsultationRequests, createContactSubmission, getAllContactSubmissions, createLead, getLeadByEmail, getAllLeads, getAllBlogPosts, getBlogPostBySlug, getRelatedBlogPosts } from "./db";
++import { createConsultationRequest, getAllConsultationRequests, createContactSubmission, getAllContactSubmissions, createLead, getLeadByEmail, getAllLeads, getAllBlogPosts, getBlogPostBySlug, getRelatedBlogPosts, trackEvent, getKpiDashboard } from "./db";
+ import { notifyOwner } from "./_core/notification";
+ 
+ export const appRouter = router({
+@@ -136,6 +136,29 @@ export const appRouter = router({
+       return await getAllLeads();
+     }),
+   }),
++
++  analytics: router({
++    // Public, fire-and-forget event tracking. Never surfaces errors to the caller.
++    track: publicProcedure
++      .input(
++        z.object({
++          sessionId: z.string().min(1),
++          eventType: z.string().min(1),
++          entityId: z.number().optional(),
++          entityType: z.string().optional(),
++          pagePath: z.string().optional(),
++        })
++      )
++      .mutation(async ({ input }) => {
++        trackEvent(input).catch(() => {});
++        return { success: true };
++      }),
++    dashboard: adminProcedure
++      .input(z.object({ period: z.enum(["week", "month"]) }))
++      .query(async ({ input }) => {
++        return await getKpiDashboard(input.period);
++      }),
++  }),
+ });
+ 
+ export type AppRouter = typeof appRouter;

@@ -101,3 +101,23 @@ export const blogPosts = mysqlTable("blog_posts", {
 
 export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertBlogPost = typeof blogPosts.$inferInsert;
+
+/**
+ * Lightweight self-hosted analytics events (KPI dashboard).
+ * One generic row per tracked moment: a page view, a blog post read,
+ * or a funnel-stage action. Real conversions (contact form submissions)
+ * live in `contact_submissions` — this table is for behavior, not
+ * source-of-truth financial/lead data.
+ */
+export const analyticsEvents = mysqlTable("analytics_events", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: varchar("session_id", { length: 64 }).notNull(),
+  eventType: varchar("event_type", { length: 64 }).notNull(), // e.g. 'page_view', 'blog_post_view'
+  entityId: int("entity_id"), // optional: e.g. blog post id this event relates to
+  entityType: varchar("entity_type", { length: 32 }), // optional: e.g. 'blog_post'
+  pagePath: varchar("page_path", { length: 255 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;
+export type InsertAnalyticsEvent = typeof analyticsEvents.$inferInsert;

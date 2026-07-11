@@ -1,9 +1,9 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
+import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createConsultationRequest, getAllConsultationRequests, createContactSubmission, getAllContactSubmissions, createLead, getLeadByEmail, getAllLeads, getAllBlogPosts, getBlogPostBySlug, getRelatedBlogPosts } from "./db";
+import { createConsultationRequest, getAllConsultationRequests, createContactSubmission, getAllContactSubmissions, createLead, getLeadByEmail, getAllLeads, getAllBlogPosts, getBlogPostBySlug, getRelatedBlogPosts, trackEvent, getKpiDashboard } from "./db";
 import { notifyOwner } from "./_core/notification";
 
 export const appRouter = router({
@@ -135,6 +135,29 @@ export const appRouter = router({
       }
       return await getAllLeads();
     }),
+  }),
+
+  analytics: router({
+    // Public, fire-and-forget event tracking. Never surfaces errors to the caller.
+    track: publicProcedure
+      .input(
+        z.object({
+          sessionId: z.string().min(1),
+          eventType: z.string().min(1),
+          entityId: z.number().optional(),
+          entityType: z.string().optional(),
+          pagePath: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        trackEvent(input).catch(() => {});
+        return { success: true };
+      }),
+    dashboard: adminProcedure
+      .input(z.object({ period: z.enum(["week", "month"]) }))
+      .query(async ({ input }) => {
+        return await getKpiDashboard(input.period);
+      }),
   }),
 });
 

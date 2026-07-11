@@ -1,6 +1,6 @@
-import { eq, desc, and, ne } from "drizzle-orm";
+import { eq, desc, and, ne, gte, sql, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, consultationRequests, InsertConsultationRequest, contactSubmissions, InsertContactSubmission, leads, InsertLead, blogPosts, InsertBlogPost } from "../drizzle/schema";
+import { InsertUser, users, consultationRequests, InsertConsultationRequest, contactSubmissions, InsertContactSubmission, leads, InsertLead, blogPosts, InsertBlogPost, analyticsEvents, InsertAnalyticsEvent } from "../drizzle/schema";
 
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -215,4 +215,117 @@ export async function createManyBlogPosts(posts: InsertBlogPost[]) {
   }
   const result = await db.insert(blogPosts).values(posts);
   return result;
+}
+
+// Analytics (KPI Dashboard)
+
+/**
+ * Fire-and-forget event write. Never throws — a failed tracking call
+ * should be invisible to the visitor and to the caller.
+ */
+export async function trackEvent(data: InsertAnalyticsEvent) {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.insert(analyticsEvents).values(data);
+  } catch (error) {
+    console.warn("[Analytics] Failed to track event:", error);
+  }
+}
+
+export async function getKpiDashboard(period: "week" | "month") {
+  const days = period === "week" ? 7 : 30;
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+  const empty = {
+    period,
+    visits: 0,
+    pageViews: 0,
+    pagesPerVisit: 0,
+    blogViewers: 0,
+    contactSubmissions: 0,
+    conversionRate: 0,
+    funnel: [
+      { stage: "Visited site", count: 0 },
+      { stage: "Read a blog post", count: 0 },
+      { stage: "Submitted contact form", count: 0 },
+    ],
+    topBlogPosts: [] as { id: number; title: string; slug: string; views: number }[],
+  };
+
+  const db = await getDb();
+  if (!db) return empty;
+
+  const [visitsRow] = await db
+    .select({
+      visits: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+      pageViews: sql<number>`COUNT(*)`,
+    })
+    .from(analyticsEvents)
+    .where(and(eq(analyticsEvents.eventType, "page_view"), gte(analyticsEvents.createdAt, since)));
+
+  const [blogRow] = await db
+    .select({
+      blogViewers: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+    })
+    .from(analyticsEvents)
+    .where(and(eq(analyticsEvents.eventType, "blog_post_view"), gte(analyticsEvents.createdAt, since)));
+
+  // Real conversion table — never duplicated in analytics_events
+  const [contactRow] = await db
+    .select({ count: sql<number>`COUNT(*)` })
+    .from(contactSubmissions)
+    .where(gte(contactSubmissions.createdAt, since));
+
+  const leaderboard = await db
+    .select({
+      entityId: analyticsEvents.entityId,
+      views: sql<number>`COUNT(*)`,
+    })
+    .from(analyticsEvents)
+    .where(and(eq(analyticsEvents.eventType, "blog_post_view"), gte(analyticsEvents.createdAt, since)))
+    .groupBy(analyticsEvents.entityId)
+    .orderBy(desc(sql`COUNT(*)`))
+    .limit(5);
+
+  const postIds = leaderboard.map(l => l.entityId).filter((id): id is number => id !== null);
+  const posts = postIds.length
+    ? await db
+        .select({ id: blogPosts.id, title: blogPosts.title, slug: blogPosts.slug })
+        .from(blogPosts)
+        .where(inArray(blogPosts.id, postIds))
+    : [];
+
+  const topBlogPosts = leaderboard
+    .filter(l => l.entityId !== null)
+    .map(l => {
+      const post = posts.find(p => p.id === l.entityId);
+      return {
+        id: l.entityId as number,
+        title: post?.title ?? "Unknown post",
+        slug: post?.slug ?? "",
+        views: Number(l.views),
+      };
+    });
+
+  const visits = Number(visitsRow?.visits ?? 0);
+  const pageViews = Number(visitsRow?.pageViews ?? 0);
+  const blogViewers = Number(blogRow?.blogViewers ?? 0);
+  const contactCount = Number(contactRow?.count ?? 0);
+
+  return {
+    period,
+    visits,
+    pageViews,
+    pagesPerVisit: visits > 0 ? Math.round((pageViews / visits) * 10) / 10 : 0,
+    blogViewers,
+    contactSubmissions: contactCount,
+    conversionRate: visits > 0 ? Math.round((contactCount / visits) * 1000) / 10 : 0,
+    funnel: [
+      { stage: "Visited site", count: visits },
+      { stage: "Read a blog post", count: blogViewers },
+      { stage: "Submitted contact form", count: contactCount },
+    ],
+    topBlogPosts,
+  };
 }
