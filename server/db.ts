@@ -270,8 +270,8 @@ export async function getKpiDashboard(period: "week" | "month") {
       { stage: "Read a blog post", count: 0 },
       { stage: "Submitted contact form", count: 0 },
     ],
-    topBlogPosts: [] as { id: number; title: string; slug: string; views: number }[],
-    topPages: [] as { path: string; visitors: number }[],
+    topBlogPosts: [] as { id: number; title: string; slug: string; views: number; avgSeconds: number }[],
+    topPages: [] as { path: string; visitors: number; avgSeconds: number }[],
     trafficSources: [] as { source: string; count: number }[],
     deviceBreakdown: [] as { device: string; count: number }[],
     topCountries: [] as { country: string; count: number }[],
@@ -320,6 +320,24 @@ export async function getKpiDashboard(period: "week" | "month") {
         .where(inArray(blogPosts.id, postIds))
     : [];
 
+  // Average time-on-page, keyed by pagePath ('page_time' events fire on
+  // route change and on tab close, carrying seconds spent in `value`).
+  const durationRows = await db
+    .select({
+      pagePath: analyticsEvents.pagePath,
+      avgSeconds: sql<number>`AVG(${analyticsEvents.value})`,
+    })
+    .from(analyticsEvents)
+    .where(and(eq(analyticsEvents.eventType, "page_time"), gte(analyticsEvents.createdAt, since)))
+    .groupBy(analyticsEvents.pagePath);
+
+  const avgDurationByPath = new Map<string, number>();
+  for (const row of durationRows) {
+    if (row.pagePath && row.avgSeconds !== null) {
+      avgDurationByPath.set(row.pagePath, Math.round(Number(row.avgSeconds)));
+    }
+  }
+
   const topBlogPosts = leaderboard
     .filter(l => l.entityId !== null)
     .map(l => {
@@ -329,6 +347,7 @@ export async function getKpiDashboard(period: "week" | "month") {
         title: post?.title ?? "Unknown post",
         slug: post?.slug ?? "",
         views: Number(l.views),
+        avgSeconds: post?.slug ? (avgDurationByPath.get(`/blog/${post.slug}`) ?? 0) : 0,
       };
     });
 
@@ -355,7 +374,11 @@ export async function getKpiDashboard(period: "week" | "month") {
     pageSessionSets.get(row.pagePath)!.add(row.sessionId);
   }
   const topPages = Array.from(pageSessionSets.entries())
-    .map(([path, sessions]) => ({ path, visitors: sessions.size }))
+    .map(([path, sessions]) => ({
+      path,
+      visitors: sessions.size,
+      avgSeconds: avgDurationByPath.get(path) ?? 0,
+    }))
     .sort((a, b) => b.visitors - a.visitors)
     .slice(0, 5);
 

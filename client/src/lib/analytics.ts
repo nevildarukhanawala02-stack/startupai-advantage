@@ -14,6 +14,7 @@ const analyticsClient = createTRPCClient<AppRouter>({
         return globalThis.fetch(input, {
           ...(init ?? {}),
           credentials: "include",
+          keepalive: true,
         });
       },
     }),
@@ -45,6 +46,7 @@ type TrackInput = {
   entityId?: number;
   entityType?: string;
   pagePath?: string;
+  value?: number;
 };
 
 /**
@@ -55,7 +57,7 @@ type TrackInput = {
  * change on client-side (SPA) navigation, so it naturally captures the
  * session's true entry source across every event fired afterward.
  */
-function track({ eventType, entityId, entityType, pagePath }: TrackInput) {
+function track({ eventType, entityId, entityType, pagePath, value }: TrackInput) {
   if (typeof window === "undefined") return;
   analyticsClient.analytics.track
     .mutate({
@@ -66,6 +68,7 @@ function track({ eventType, entityId, entityType, pagePath }: TrackInput) {
       pagePath: pagePath ?? window.location.pathname,
       referrer: document.referrer || undefined,
       deviceType: detectDeviceType(),
+      value,
     })
     .catch(() => {
       // Silently ignore — analytics should never break the app
@@ -82,4 +85,9 @@ export function trackBlogPostView(postId: number, pagePath?: string) {
 
 export function trackContactSubmit() {
   track({ eventType: "contact_form_submit" });
+}
+
+export function trackPageDuration(pagePath: string, seconds: number) {
+  if (seconds <= 0) return;
+  track({ eventType: "page_time", pagePath, value: seconds });
 }

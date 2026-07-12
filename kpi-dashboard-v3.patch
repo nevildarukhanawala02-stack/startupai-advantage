@@ -1,0 +1,287 @@
+diff --git a/client/src/components/RouteTracker.tsx b/client/src/components/RouteTracker.tsx
+index 31f8fdb..1b3c6bb 100644
+--- a/client/src/components/RouteTracker.tsx
++++ b/client/src/components/RouteTracker.tsx
+@@ -1,18 +1,47 @@
+-import { useEffect } from "react";
++import { useEffect, useRef } from "react";
+ import { useLocation } from "wouter";
+-import { trackPageView } from "@/lib/analytics";
++import { trackPageView, trackPageDuration } from "@/lib/analytics";
+ 
+ /**
+- * Fires a page_view analytics event on every route change.
+- * Mount once near the top of the app. Renders nothing.
++ * Fires a page_view analytics event on every route change, and a page_time
++ * event (seconds spent) whenever the visitor leaves that page — either by
++ * navigating elsewhere or closing the tab. Mount once near the top of the
++ * app. Renders nothing.
+  */
+ export default function RouteTracker() {
+   const [location] = useLocation();
++  const currentPathRef = useRef<string | null>(null);
++  const enteredAtRef = useRef<number>(Date.now());
+ 
+   useEffect(() => {
+-    if (location.startsWith("/admin")) return;
+-    trackPageView(location);
++    // Flush time spent on the page we're leaving before entering the new one
++    const previousPath = currentPathRef.current;
++    if (previousPath && !previousPath.startsWith("/admin")) {
++      const seconds = Math.round((Date.now() - enteredAtRef.current) / 1000);
++      trackPageDuration(previousPath, seconds);
++    }
++
++    currentPathRef.current = location;
++    enteredAtRef.current = Date.now();
++
++    if (!location.startsWith("/admin")) {
++      trackPageView(location);
++    }
+   }, [location]);
+ 
++  useEffect(() => {
++    // pagehide fires reliably on tab close / navigation away from the site,
++    // unlike beforeunload which can be skipped by the bfcache.
++    function flushOnHide() {
++      const path = currentPathRef.current;
++      if (path && !path.startsWith("/admin")) {
++        const seconds = Math.round((Date.now() - enteredAtRef.current) / 1000);
++        trackPageDuration(path, seconds);
++      }
++    }
++    window.addEventListener("pagehide", flushOnHide);
++    return () => window.removeEventListener("pagehide", flushOnHide);
++  }, []);
++
+   return null;
+ }
+diff --git a/client/src/lib/analytics.ts b/client/src/lib/analytics.ts
+index 9cfb23a..e263c7e 100644
+--- a/client/src/lib/analytics.ts
++++ b/client/src/lib/analytics.ts
+@@ -14,6 +14,7 @@ const analyticsClient = createTRPCClient<AppRouter>({
+         return globalThis.fetch(input, {
+           ...(init ?? {}),
+           credentials: "include",
++          keepalive: true,
+         });
+       },
+     }),
+@@ -45,6 +46,7 @@ type TrackInput = {
+   entityId?: number;
+   entityType?: string;
+   pagePath?: string;
++  value?: number;
+ };
+ 
+ /**
+@@ -55,7 +57,7 @@ type TrackInput = {
+  * change on client-side (SPA) navigation, so it naturally captures the
+  * session's true entry source across every event fired afterward.
+  */
+-function track({ eventType, entityId, entityType, pagePath }: TrackInput) {
++function track({ eventType, entityId, entityType, pagePath, value }: TrackInput) {
+   if (typeof window === "undefined") return;
+   analyticsClient.analytics.track
+     .mutate({
+@@ -66,6 +68,7 @@ function track({ eventType, entityId, entityType, pagePath }: TrackInput) {
+       pagePath: pagePath ?? window.location.pathname,
+       referrer: document.referrer || undefined,
+       deviceType: detectDeviceType(),
++      value,
+     })
+     .catch(() => {
+       // Silently ignore — analytics should never break the app
+@@ -83,3 +86,8 @@ export function trackBlogPostView(postId: number, pagePath?: string) {
+ export function trackContactSubmit() {
+   track({ eventType: "contact_form_submit" });
+ }
++
++export function trackPageDuration(pagePath: string, seconds: number) {
++  if (seconds <= 0) return;
++  track({ eventType: "page_time", pagePath, value: seconds });
++}
+diff --git a/client/src/pages/AdminKpiDashboard.tsx b/client/src/pages/AdminKpiDashboard.tsx
+index bb687ea..62847cc 100644
+--- a/client/src/pages/AdminKpiDashboard.tsx
++++ b/client/src/pages/AdminKpiDashboard.tsx
+@@ -28,6 +28,14 @@ function countryFlag(code: string): string {
+     .replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
+ }
+ 
++function formatDuration(seconds: number): string {
++  if (seconds <= 0) return "—";
++  if (seconds < 60) return `${seconds}s`;
++  const minutes = Math.floor(seconds / 60);
++  const rest = seconds % 60;
++  return rest > 0 ? `${minutes}m ${rest}s` : `${minutes}m`;
++}
++
+ export default function AdminKpiDashboard() {
+   const { data: user, isLoading: authLoading } = trpc.auth.me.useQuery();
+   const [, setLocation] = useLocation();
+@@ -115,7 +123,7 @@ export default function AdminKpiDashboard() {
+               {dashboard.funnel.map((stage, i) => (
+                 <div key={stage.stage}>
+                   <div className="flex items-center justify-between mb-1 text-sm">
+-                    <span className={i === dashboard.funnel.length - 1 ? "font-semibold text-cyan-500" : ""}>
++                    <span className={i === dashboard.funnel.length - 1 ? "font-semibold text-cyan-700" : ""}>
+                       {stage.stage}
+                     </span>
+                     <span className="text-muted-foreground">{stage.count.toLocaleString()}</span>
+@@ -179,9 +187,14 @@ export default function AdminKpiDashboard() {
+                         <span className="text-sm font-semibold text-muted-foreground w-5">{i + 1}</span>
+                         <span className="truncate">{post.title}</span>
+                       </div>
+-                      <span className="text-sm font-medium text-cyan-500 shrink-0 ml-4">
+-                        {post.views.toLocaleString()} views
+-                      </span>
++                      <div className="flex items-center gap-3 shrink-0 ml-4">
++                        <span className="text-xs text-muted-foreground">
++                          {formatDuration(post.avgSeconds)} avg
++                        </span>
++                        <span className="text-sm font-semibold text-cyan-700">
++                          {post.views.toLocaleString()} views
++                        </span>
++                      </div>
+                     </div>
+                   ))}
+                 </div>
+@@ -207,9 +220,14 @@ export default function AdminKpiDashboard() {
+                           <span className="text-sm font-semibold text-muted-foreground w-5">{i + 1}</span>
+                           <span className="truncate text-sm">{page.path}</span>
+                         </div>
+-                        <span className="text-sm font-medium text-cyan-500 shrink-0 ml-4">
+-                          {page.visitors.toLocaleString()}
+-                        </span>
++                        <div className="flex items-center gap-3 shrink-0 ml-4">
++                          <span className="text-xs text-muted-foreground">
++                            {formatDuration(page.avgSeconds)} avg
++                          </span>
++                          <span className="text-sm font-semibold text-cyan-700">
++                            {page.visitors.toLocaleString()}
++                          </span>
++                        </div>
+                       </div>
+                     ))}
+                   </div>
+@@ -230,7 +248,7 @@ export default function AdminKpiDashboard() {
+                     {dashboard.trafficSources.map(({ source, count }) => (
+                       <div key={source} className="flex items-center justify-between py-1.5 border-b last:border-0">
+                         <span className="text-sm">{source}</span>
+-                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
++                        <span className="text-sm font-semibold text-cyan-700">{count.toLocaleString()}</span>
+                       </div>
+                     ))}
+                   </div>
+@@ -254,7 +272,7 @@ export default function AdminKpiDashboard() {
+                     {dashboard.deviceBreakdown.map(({ device, count }) => (
+                       <div key={device} className="flex items-center justify-between py-1.5 border-b last:border-0">
+                         <span className="text-sm">{device}</span>
+-                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
++                        <span className="text-sm font-semibold text-cyan-700">{count.toLocaleString()}</span>
+                       </div>
+                     ))}
+                   </div>
+@@ -277,7 +295,7 @@ export default function AdminKpiDashboard() {
+                         <span className="text-sm">
+                           {countryFlag(country)} {country}
+                         </span>
+-                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
++                        <span className="text-sm font-semibold text-cyan-700">{count.toLocaleString()}</span>
+                       </div>
+                     ))}
+                   </div>
+diff --git a/drizzle/0007_analytics_events_value.sql b/drizzle/0007_analytics_events_value.sql
+new file mode 100644
+index 0000000..5d5383a
+--- /dev/null
++++ b/drizzle/0007_analytics_events_value.sql
+@@ -0,0 +1 @@
++ALTER TABLE `analytics_events` ADD `value` int;
+diff --git a/drizzle/schema.ts b/drizzle/schema.ts
+index db05f26..45d8863 100644
+--- a/drizzle/schema.ts
++++ b/drizzle/schema.ts
+@@ -119,6 +119,7 @@ export const analyticsEvents = mysqlTable("analytics_events", {
+   referrer: varchar("referrer", { length: 500 }), // document.referrer at time of page_view, if any
+   deviceType: varchar("device_type", { length: 16 }), // 'desktop' | 'mobile' | 'tablet'
+   country: varchar("country", { length: 2 }), // ISO 3166-1 alpha-2, derived server-side from IP
++  value: int("value"), // generic numeric payload, e.g. seconds spent on page for 'page_time' events
+   createdAt: timestamp("created_at").defaultNow().notNull(),
+ });
+ 
+diff --git a/server/db.ts b/server/db.ts
+index 12f8d9a..94a9091 100644
+--- a/server/db.ts
++++ b/server/db.ts
+@@ -270,8 +270,8 @@ export async function getKpiDashboard(period: "week" | "month") {
+       { stage: "Read a blog post", count: 0 },
+       { stage: "Submitted contact form", count: 0 },
+     ],
+-    topBlogPosts: [] as { id: number; title: string; slug: string; views: number }[],
+-    topPages: [] as { path: string; visitors: number }[],
++    topBlogPosts: [] as { id: number; title: string; slug: string; views: number; avgSeconds: number }[],
++    topPages: [] as { path: string; visitors: number; avgSeconds: number }[],
+     trafficSources: [] as { source: string; count: number }[],
+     deviceBreakdown: [] as { device: string; count: number }[],
+     topCountries: [] as { country: string; count: number }[],
+@@ -320,6 +320,24 @@ export async function getKpiDashboard(period: "week" | "month") {
+         .where(inArray(blogPosts.id, postIds))
+     : [];
+ 
++  // Average time-on-page, keyed by pagePath ('page_time' events fire on
++  // route change and on tab close, carrying seconds spent in `value`).
++  const durationRows = await db
++    .select({
++      pagePath: analyticsEvents.pagePath,
++      avgSeconds: sql<number>`AVG(${analyticsEvents.value})`,
++    })
++    .from(analyticsEvents)
++    .where(and(eq(analyticsEvents.eventType, "page_time"), gte(analyticsEvents.createdAt, since)))
++    .groupBy(analyticsEvents.pagePath);
++
++  const avgDurationByPath = new Map<string, number>();
++  for (const row of durationRows) {
++    if (row.pagePath && row.avgSeconds !== null) {
++      avgDurationByPath.set(row.pagePath, Math.round(Number(row.avgSeconds)));
++    }
++  }
++
+   const topBlogPosts = leaderboard
+     .filter(l => l.entityId !== null)
+     .map(l => {
+@@ -329,6 +347,7 @@ export async function getKpiDashboard(period: "week" | "month") {
+         title: post?.title ?? "Unknown post",
+         slug: post?.slug ?? "",
+         views: Number(l.views),
++        avgSeconds: post?.slug ? (avgDurationByPath.get(`/blog/${post.slug}`) ?? 0) : 0,
+       };
+     });
+ 
+@@ -355,7 +374,11 @@ export async function getKpiDashboard(period: "week" | "month") {
+     pageSessionSets.get(row.pagePath)!.add(row.sessionId);
+   }
+   const topPages = Array.from(pageSessionSets.entries())
+-    .map(([path, sessions]) => ({ path, visitors: sessions.size }))
++    .map(([path, sessions]) => ({
++      path,
++      visitors: sessions.size,
++      avgSeconds: avgDurationByPath.get(path) ?? 0,
++    }))
+     .sort((a, b) => b.visitors - a.visitors)
+     .slice(0, 5);
+ 
+diff --git a/server/routers.ts b/server/routers.ts
+index fa1c728..cc6d542 100644
+--- a/server/routers.ts
++++ b/server/routers.ts
+@@ -150,6 +150,7 @@ export const appRouter = router({
+           pagePath: z.string().optional(),
+           referrer: z.string().max(500).optional(),
+           deviceType: z.enum(["desktop", "mobile", "tablet"]).optional(),
++          value: z.number().int().nonnegative().optional(),
+         })
+       )
+       .mutation(async ({ input, ctx }) => {

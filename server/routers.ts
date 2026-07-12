@@ -150,6 +150,7 @@ export const appRouter = router({
           pagePath: z.string().optional(),
           referrer: z.string().max(500).optional(),
           deviceType: z.enum(["desktop", "mobile", "tablet"]).optional(),
+          value: z.number().int().nonnegative().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {

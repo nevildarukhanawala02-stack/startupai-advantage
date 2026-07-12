@@ -119,6 +119,7 @@ export const analyticsEvents = mysqlTable("analytics_events", {
   referrer: varchar("referrer", { length: 500 }), // document.referrer at time of page_view, if any
   deviceType: varchar("device_type", { length: 16 }), // 'desktop' | 'mobile' | 'tablet'
   country: varchar("country", { length: 2 }), // ISO 3166-1 alpha-2, derived server-side from IP
+  value: int("value"), // generic numeric payload, e.g. seconds spent on page for 'page_time' events
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

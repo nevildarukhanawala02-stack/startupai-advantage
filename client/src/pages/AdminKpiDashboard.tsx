@@ -28,6 +28,14 @@ function countryFlag(code: string): string {
     .replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
 }
 
+function formatDuration(seconds: number): string {
+  if (seconds <= 0) return "—";
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return rest > 0 ? `${minutes}m ${rest}s` : `${minutes}m`;
+}
+
 export default function AdminKpiDashboard() {
   const { data: user, isLoading: authLoading } = trpc.auth.me.useQuery();
   const [, setLocation] = useLocation();
@@ -115,7 +123,7 @@ export default function AdminKpiDashboard() {
               {dashboard.funnel.map((stage, i) => (
                 <div key={stage.stage}>
                   <div className="flex items-center justify-between mb-1 text-sm">
-                    <span className={i === dashboard.funnel.length - 1 ? "font-semibold text-cyan-500" : ""}>
+                    <span className={i === dashboard.funnel.length - 1 ? "font-semibold text-cyan-700" : ""}>
                       {stage.stage}
                     </span>
                     <span className="text-muted-foreground">{stage.count.toLocaleString()}</span>
@@ -179,9 +187,14 @@ export default function AdminKpiDashboard() {
                         <span className="text-sm font-semibold text-muted-foreground w-5">{i + 1}</span>
                         <span className="truncate">{post.title}</span>
                       </div>
-                      <span className="text-sm font-medium text-cyan-500 shrink-0 ml-4">
-                        {post.views.toLocaleString()} views
-                      </span>
+                      <div className="flex items-center gap-3 shrink-0 ml-4">
+                        <span className="text-xs text-muted-foreground">
+                          {formatDuration(post.avgSeconds)} avg
+                        </span>
+                        <span className="text-sm font-semibold text-cyan-700">
+                          {post.views.toLocaleString()} views
+                        </span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -207,9 +220,14 @@ export default function AdminKpiDashboard() {
                           <span className="text-sm font-semibold text-muted-foreground w-5">{i + 1}</span>
                           <span className="truncate text-sm">{page.path}</span>
                         </div>
-                        <span className="text-sm font-medium text-cyan-500 shrink-0 ml-4">
-                          {page.visitors.toLocaleString()}
-                        </span>
+                        <div className="flex items-center gap-3 shrink-0 ml-4">
+                          <span className="text-xs text-muted-foreground">
+                            {formatDuration(page.avgSeconds)} avg
+                          </span>
+                          <span className="text-sm font-semibold text-cyan-700">
+                            {page.visitors.toLocaleString()}
+                          </span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -230,7 +248,7 @@ export default function AdminKpiDashboard() {
                     {dashboard.trafficSources.map(({ source, count }) => (
                       <div key={source} className="flex items-center justify-between py-1.5 border-b last:border-0">
                         <span className="text-sm">{source}</span>
-                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
+                        <span className="text-sm font-semibold text-cyan-700">{count.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -254,7 +272,7 @@ export default function AdminKpiDashboard() {
                     {dashboard.deviceBreakdown.map(({ device, count }) => (
                       <div key={device} className="flex items-center justify-between py-1.5 border-b last:border-0">
                         <span className="text-sm">{device}</span>
-                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
+                        <span className="text-sm font-semibold text-cyan-700">{count.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -277,7 +295,7 @@ export default function AdminKpiDashboard() {
                         <span className="text-sm">
                           {countryFlag(country)} {country}
                         </span>
-                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
+                        <span className="text-sm font-semibold text-cyan-700">{count.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
