@@ -1,0 +1,738 @@
+diff --git a/client/src/components/RouteTracker.tsx b/client/src/components/RouteTracker.tsx
+index 038dbb7..31f8fdb 100644
+--- a/client/src/components/RouteTracker.tsx
++++ b/client/src/components/RouteTracker.tsx
+@@ -10,6 +10,7 @@ export default function RouteTracker() {
+   const [location] = useLocation();
+ 
+   useEffect(() => {
++    if (location.startsWith("/admin")) return;
+     trackPageView(location);
+   }, [location]);
+ 
+diff --git a/client/src/lib/analytics.ts b/client/src/lib/analytics.ts
+index 0790fe0..9cfb23a 100644
+--- a/client/src/lib/analytics.ts
++++ b/client/src/lib/analytics.ts
+@@ -32,6 +32,14 @@ export function getSessionId(): string {
+   return id;
+ }
+ 
++function detectDeviceType(): "desktop" | "mobile" | "tablet" {
++  if (typeof navigator === "undefined") return "desktop";
++  const ua = navigator.userAgent.toLowerCase();
++  if (/ipad|tablet|(android(?!.*mobile))/i.test(ua)) return "tablet";
++  if (/mobile|android|iphone|ipod|blackberry|iemobile|opera mini/i.test(ua)) return "mobile";
++  return "desktop";
++}
++
+ type TrackInput = {
+   eventType: string;
+   entityId?: number;
+@@ -42,6 +50,10 @@ type TrackInput = {
+ /**
+  * Fire-and-forget analytics tracking. Never blocks the UI and never
+  * surfaces errors — a failed tracking call should be invisible.
++ *
++ * document.referrer reflects the referrer at initial page load and doesn't
++ * change on client-side (SPA) navigation, so it naturally captures the
++ * session's true entry source across every event fired afterward.
+  */
+ function track({ eventType, entityId, entityType, pagePath }: TrackInput) {
+   if (typeof window === "undefined") return;
+@@ -52,6 +64,8 @@ function track({ eventType, entityId, entityType, pagePath }: TrackInput) {
+       entityId,
+       entityType,
+       pagePath: pagePath ?? window.location.pathname,
++      referrer: document.referrer || undefined,
++      deviceType: detectDeviceType(),
+     })
+     .catch(() => {
+       // Silently ignore — analytics should never break the app
+diff --git a/client/src/pages/AdminKpiDashboard.tsx b/client/src/pages/AdminKpiDashboard.tsx
+index 84b287b..bb687ea 100644
+--- a/client/src/pages/AdminKpiDashboard.tsx
++++ b/client/src/pages/AdminKpiDashboard.tsx
+@@ -20,6 +20,14 @@ const METRIC_CARDS: Array<{
+   { key: "conversionRate", label: "Conversion Rate", icon: Percent, format: v => `${v}%` },
+ ];
+ 
++// Converts an ISO 3166-1 alpha-2 code (e.g. "US") into its flag emoji.
++function countryFlag(code: string): string {
++  if (code.length !== 2) return "🌐";
++  return code
++    .toUpperCase()
++    .replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
++}
++
+ export default function AdminKpiDashboard() {
+   const { data: user, isLoading: authLoading } = trpc.auth.me.useQuery();
+   const [, setLocation] = useLocation();
+@@ -58,6 +66,8 @@ export default function AdminKpiDashboard() {
+   }
+ 
+   const maxFunnelCount = dashboard?.funnel[0]?.count || 1;
++  const totalVisitors = (dashboard?.newVisitors ?? 0) + (dashboard?.returningVisitors ?? 0);
++  const newPct = totalVisitors > 0 ? Math.round(((dashboard?.newVisitors ?? 0) / totalVisitors) * 100) : 0;
+ 
+   return (
+     <div className="container mx-auto py-12 max-w-5xl">
+@@ -65,7 +75,7 @@ export default function AdminKpiDashboard() {
+         <div>
+           <h1 className="text-3xl font-bold mb-2">KPI Dashboard</h1>
+           <p className="text-muted-foreground">
+-            Visits, funnel, and the blog posts driving contact form leads
++            Visits, funnel, traffic sources, and what's driving contact form leads
+           </p>
+         </div>
+         <Tabs value={period} onValueChange={v => setPeriod(v as "week" | "month")}>
+@@ -119,6 +129,34 @@ export default function AdminKpiDashboard() {
+             </CardContent>
+           </Card>
+ 
++          {/* New vs returning */}
++          <Card>
++            <CardHeader>
++              <CardTitle>New vs Returning Visitors</CardTitle>
++              <CardDescription>
++                {totalVisitors === 0
++                  ? "No visitors in this period yet"
++                  : `${newPct}% new, ${100 - newPct}% returning`}
++              </CardDescription>
++            </CardHeader>
++            <CardContent>
++              <div className="flex h-3 rounded-full overflow-hidden bg-muted">
++                <div className="bg-cyan-500" style={{ width: `${newPct}%` }} />
++                <div className="bg-orange-400" style={{ width: `${100 - newPct}%` }} />
++              </div>
++              <div className="flex justify-between mt-2 text-sm">
++                <span className="flex items-center gap-1.5">
++                  <span className="h-2 w-2 rounded-full bg-cyan-500 inline-block" />
++                  New — {dashboard.newVisitors.toLocaleString()}
++                </span>
++                <span className="flex items-center gap-1.5">
++                  <span className="h-2 w-2 rounded-full bg-orange-400 inline-block" />
++                  Returning — {dashboard.returningVisitors.toLocaleString()}
++                </span>
++              </div>
++            </CardContent>
++          </Card>
++
+           {/* Top blog posts */}
+           <Card>
+             <CardHeader>
+@@ -150,6 +188,103 @@ export default function AdminKpiDashboard() {
+               )}
+             </CardContent>
+           </Card>
++
++          {/* Top pages + traffic sources */}
++          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
++            <Card>
++              <CardHeader>
++                <CardTitle>Top Pages</CardTitle>
++                <CardDescription>Most-visited pages, this {period}</CardDescription>
++              </CardHeader>
++              <CardContent>
++                {dashboard.topPages.length === 0 ? (
++                  <p className="text-sm text-muted-foreground py-6 text-center">No page views yet</p>
++                ) : (
++                  <div className="space-y-3">
++                    {dashboard.topPages.map((page, i) => (
++                      <div key={page.path} className="flex items-center justify-between py-1.5 border-b last:border-0">
++                        <div className="flex items-center gap-3 min-w-0">
++                          <span className="text-sm font-semibold text-muted-foreground w-5">{i + 1}</span>
++                          <span className="truncate text-sm">{page.path}</span>
++                        </div>
++                        <span className="text-sm font-medium text-cyan-500 shrink-0 ml-4">
++                          {page.visitors.toLocaleString()}
++                        </span>
++                      </div>
++                    ))}
++                  </div>
++                )}
++              </CardContent>
++            </Card>
++
++            <Card>
++              <CardHeader>
++                <CardTitle>Traffic Sources</CardTitle>
++                <CardDescription>Where visitors came from, this {period}</CardDescription>
++              </CardHeader>
++              <CardContent>
++                {dashboard.trafficSources.length === 0 ? (
++                  <p className="text-sm text-muted-foreground py-6 text-center">No visitors yet</p>
++                ) : (
++                  <div className="space-y-3">
++                    {dashboard.trafficSources.map(({ source, count }) => (
++                      <div key={source} className="flex items-center justify-between py-1.5 border-b last:border-0">
++                        <span className="text-sm">{source}</span>
++                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
++                      </div>
++                    ))}
++                  </div>
++                )}
++              </CardContent>
++            </Card>
++          </div>
++
++          {/* Device breakdown + top countries */}
++          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
++            <Card>
++              <CardHeader>
++                <CardTitle>Device Type</CardTitle>
++                <CardDescription>Desktop vs mobile vs tablet, this {period}</CardDescription>
++              </CardHeader>
++              <CardContent>
++                {dashboard.deviceBreakdown.length === 0 ? (
++                  <p className="text-sm text-muted-foreground py-6 text-center">No visitors yet</p>
++                ) : (
++                  <div className="space-y-3">
++                    {dashboard.deviceBreakdown.map(({ device, count }) => (
++                      <div key={device} className="flex items-center justify-between py-1.5 border-b last:border-0">
++                        <span className="text-sm">{device}</span>
++                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
++                      </div>
++                    ))}
++                  </div>
++                )}
++              </CardContent>
++            </Card>
++
++            <Card>
++              <CardHeader>
++                <CardTitle>Top Countries</CardTitle>
++                <CardDescription>Visitor locations, this {period}</CardDescription>
++              </CardHeader>
++              <CardContent>
++                {dashboard.topCountries.length === 0 ? (
++                  <p className="text-sm text-muted-foreground py-6 text-center">No visitors yet</p>
++                ) : (
++                  <div className="space-y-3">
++                    {dashboard.topCountries.map(({ country, count }) => (
++                      <div key={country} className="flex items-center justify-between py-1.5 border-b last:border-0">
++                        <span className="text-sm">
++                          {countryFlag(country)} {country}
++                        </span>
++                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
++                      </div>
++                    ))}
++                  </div>
++                )}
++              </CardContent>
++            </Card>
++          </div>
+         </div>
+       )}
+     </div>
+diff --git a/drizzle/0006_analytics_events_columns.sql b/drizzle/0006_analytics_events_columns.sql
+new file mode 100644
+index 0000000..54b2be0
+--- /dev/null
++++ b/drizzle/0006_analytics_events_columns.sql
+@@ -0,0 +1,5 @@
++ALTER TABLE `analytics_events` ADD `referrer` varchar(500);
++--> statement-breakpoint
++ALTER TABLE `analytics_events` ADD `device_type` varchar(16);
++--> statement-breakpoint
++ALTER TABLE `analytics_events` ADD `country` varchar(2);
+diff --git a/drizzle/schema.ts b/drizzle/schema.ts
+index 30fce57..db05f26 100644
+--- a/drizzle/schema.ts
++++ b/drizzle/schema.ts
+@@ -116,6 +116,9 @@ export const analyticsEvents = mysqlTable("analytics_events", {
+   entityId: int("entity_id"), // optional: e.g. blog post id this event relates to
+   entityType: varchar("entity_type", { length: 32 }), // optional: e.g. 'blog_post'
+   pagePath: varchar("page_path", { length: 255 }),
++  referrer: varchar("referrer", { length: 500 }), // document.referrer at time of page_view, if any
++  deviceType: varchar("device_type", { length: 16 }), // 'desktop' | 'mobile' | 'tablet'
++  country: varchar("country", { length: 2 }), // ISO 3166-1 alpha-2, derived server-side from IP
+   createdAt: timestamp("created_at").defaultNow().notNull(),
+ });
+ 
+diff --git a/package.json b/package.json
+index 299e480..85b401c 100644
+--- a/package.json
++++ b/package.json
+@@ -62,6 +62,7 @@
+     "embla-carousel-react": "^8.6.0",
+     "express": "^4.21.2",
+     "framer-motion": "^12.23.22",
++    "geoip-lite": "^2.0.3",
+     "input-otp": "^1.4.2",
+     "jose": "6.1.0",
+     "lucide-react": "^0.453.0",
+@@ -89,6 +90,7 @@
+     "@tailwindcss/typography": "^0.5.15",
+     "@tailwindcss/vite": "^4.1.3",
+     "@types/express": "4.17.21",
++    "@types/geoip-lite": "^1.4.4",
+     "@types/google.maps": "^3.58.1",
+     "@types/node": "^24.7.0",
+     "@types/react": "^19.2.1",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index a69b36a..f28bffa 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -163,6 +163,9 @@ importers:
+       framer-motion:
+         specifier: ^12.23.22
+         version: 12.26.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
++      geoip-lite:
++        specifier: ^2.0.3
++        version: 2.0.3
+       input-otp:
+         specifier: ^1.4.2
+         version: 1.4.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+@@ -239,6 +242,9 @@ importers:
+       '@types/express':
+         specifier: 4.17.21
+         version: 4.17.21
++      '@types/geoip-lite':
++        specifier: ^1.4.4
++        version: 1.4.4
+       '@types/google.maps':
+         specifier: ^3.58.1
+         version: 3.58.1
+@@ -2533,6 +2539,9 @@ packages:
+   '@types/express@4.17.21':
+     resolution: {integrity: sha512-ejlPM315qwLpaQlQDTjPdsUFSc6ZsP4AN6AlWnogPjQ7CVi7PYF3YVz+CY3jE2pwYf7E/7HlDAN0rV2GxTG0HQ==}
+ 
++  '@types/geoip-lite@1.4.4':
++    resolution: {integrity: sha512-2uVfn+C6bX/H356H6mjxsWUA5u8LO8dJgSBIRO/NFlpMe4DESzacutD/rKYrTDKm1Ugv78b4Wz1KvpHrlv3jSw==}
++
+   '@types/geojson@7946.0.16':
+     resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
+ 
+@@ -2646,6 +2655,10 @@ packages:
+     peerDependencies:
+       zod: ^3.25.76 || ^4.1.8
+ 
++  ansi-styles@4.3.0:
++    resolution: {integrity: sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==}
++    engines: {node: '>=8'}
++
+   aria-hidden@1.2.6:
+     resolution: {integrity: sha512-ik3ZgC9dY/lYVVM++OISsaYDeg1tb0VtP5uL3ouh1koGOaUMDPpbFIei4JkFimWUFPn90sbMNMXQAIVOlnYKJA==}
+     engines: {node: '>=10'}
+@@ -2722,6 +2735,10 @@ packages:
+     resolution: {integrity: sha512-4zNhdJD/iOjSH0A05ea+Ke6MU5mmpQcbQsSOkgdaUMJ9zTlDTD/GYlwohmIE2u0gaxHYiVHEn1Fw9mZ/ktJWgw==}
+     engines: {node: '>=18'}
+ 
++  chalk@4.1.2:
++    resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
++    engines: {node: '>=10'}
++
+   character-entities-html4@2.1.0:
+     resolution: {integrity: sha512-1v7fgQRj6hnSwFpq1Eu0ynr/CDEw0rXo2B61qXrLNdHZmPKgb7fqS1a2JwF0rISo9q77jDI8VMEHoApn8qDoZA==}
+ 
+@@ -2759,6 +2776,13 @@ packages:
+       react: ^18 || ^19 || ^19.0.0-rc
+       react-dom: ^18 || ^19 || ^19.0.0-rc
+ 
++  color-convert@2.0.1:
++    resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
++    engines: {node: '>=7.0.0'}
++
++  color-name@1.1.4:
++    resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
++
+   combined-stream@1.0.8:
+     resolution: {integrity: sha512-FQN4MRfuJeHf7cBbBMJFXhKSDq+2kAArBlmRBvcvFE5BB1HZKXtSFASDhdlz9zOYwxh8lDdnvmMOe/+5cdoEdg==}
+     engines: {node: '>= 0.8'}
+@@ -3346,6 +3370,10 @@ packages:
+     resolution: {integrity: sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg==}
+     engines: {node: '>=6.9.0'}
+ 
++  geoip-lite@2.0.3:
++    resolution: {integrity: sha512-I0v/6sITK5FhEXHmatGSPBMply2nHN/2D743LIx4KkksttZt/E505lDaV6qUwt5RM08MbZW+/4E0KxusLVN39w==}
++    engines: {node: '>=24.0.0'}
++
+   get-east-asian-width@1.4.0:
+     resolution: {integrity: sha512-QZjmEOC+IT1uk6Rx0sX22V6uHWVwbdbxf1faPqJ1QhLdGgsRGCZoyaQBm/piRdJy/D2um6hM1UP7ZEeQ4EkP+Q==}
+     engines: {node: '>=18'}
+@@ -3375,6 +3403,10 @@ packages:
+   hachure-fill@0.5.2:
+     resolution: {integrity: sha512-3GKBOn+m2LX9iq+JC1064cSFprJY4jL1jCXTcpnfER5HYE2l/4EfWSGzkPa/ZDBmYI0ZOEj5VHV/eKnPGkHuOg==}
+ 
++  has-flag@4.0.0:
++    resolution: {integrity: sha512-EykJT/Q1KjTWctppgIAgfSO0tKVuZUjhgMr17kqTumMl6Afv3EISleU7qZUzoXDFTAHTDC4NOoG/ZxU3EvlMPQ==}
++    engines: {node: '>=8'}
++
+   has-symbols@1.1.0:
+     resolution: {integrity: sha512-1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ==}
+     engines: {node: '>= 0.4'}
+@@ -3474,6 +3506,10 @@ packages:
+     resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
+     engines: {node: '>=12'}
+ 
++  ip-address@10.2.0:
++    resolution: {integrity: sha512-/+S6j4E9AHvW9SWMSEY9Xfy66O5PWvVEJ08O0y5JGyEKQpojb0K0GKpz/v5HJ/G0vi3D2sjGK78119oXZeE0qA==}
++    engines: {node: '>= 12'}
++
+   ipaddr.js@1.9.1:
+     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
+     engines: {node: '>= 0.10'}
+@@ -3541,6 +3577,10 @@ packages:
+   layout-base@2.0.1:
+     resolution: {integrity: sha512-dp3s92+uNI1hWIpPGH3jK2kxE2lMjdXdr+DH8ynZHpd6PUlH6x6cbuXnoMmiNumznqaNO31xu9e79F0uuZ0JFg==}
+ 
++  lazy@1.0.11:
++    resolution: {integrity: sha512-Y+CjUfLmIpoUCCRl0ub4smrYtGGr5AOa2AKOaWelGHOGz33X/Y/KizefGqbkwfz44+cnq/+9habclf8vOmu2LA==}
++    engines: {node: '>=0.2.0'}
++
+   lightningcss-android-arm64@1.30.2:
+     resolution: {integrity: sha512-BH9sEdOCahSgmkVhBLeU7Hc9DWeZ1Eb6wNS6Da8igvUwAe0sqROHddIlvU06q3WyXVEOYDZ6ykBZQnjTbmo4+A==}
+     engines: {node: '>= 12.0.0'}
+@@ -3952,6 +3992,9 @@ packages:
+     resolution: {integrity: sha512-//nshmD55c46FuFw26xV/xFAaB5HF9Xdap7HJBBnrKdAd6/GxDBaNA1870O79+9ueg61cZLSVc+OaFlfmObYVQ==}
+     engines: {node: '>= 14.16'}
+ 
++  pend@1.2.0:
++    resolution: {integrity: sha512-F3asv42UuXchdzt+xXqfW1OGlVBe+mxa2mqI0pg5yAHZPvFmY3Y6drSf/GQ1A86WgWEN9Kzh/WrgKa6iGcHXLg==}
++
+   picocolors@1.1.1:
+     resolution: {integrity: sha512-xceH2snhtb5M9liqDsmEw56le376mTZkEX/jEb/RxNFyegNul7eNslCXP9FDj/Lcu0X8KEyMceP2ntpaHrDEVA==}
+ 
+@@ -4305,6 +4348,10 @@ packages:
+     resolution: {integrity: sha512-mJiVjfd2vokfDxsQPOwJ/PtanO87LhpYY88ubI5dUB1Ab58Txbyje3+jpm+/83R/fevaq/107NNhtYBLuoTrFg==}
+     engines: {node: '>=10'}
+ 
++  supports-color@7.2.0:
++    resolution: {integrity: sha512-qpCAvRl9stuOHveKsn7HncJRvv501qIacKzQlO/+Lwxc9+0q2wLyv4Dfvt80/DPn2pqOBsJdDiogXGR9+OvwRw==}
++    engines: {node: '>=8'}
++
+   swr@2.3.8:
+     resolution: {integrity: sha512-gaCPRVoMq8WGDcWj9p4YWzCMPHzE0WNl6W8ADIx9c3JBEIdMkJGMzW+uzXvxHMltwcYACr9jP+32H8/hgwMR7w==}
+     peerDependencies:
+@@ -4627,6 +4674,10 @@ packages:
+   yallist@3.1.1:
+     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
+ 
++  yauzl@3.4.0:
++    resolution: {integrity: sha512-jIH9yLR9wqr0wOS0TpBvo/g/2UgZH5qePVbjgRliiF0BYvOZyaBknKsF+x9Iht0O6sqgnB93rCICdOZFecJuDw==}
++    engines: {node: '>=12'}
++
+   zod@4.3.5:
+     resolution: {integrity: sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==}
+ 
+@@ -7089,6 +7140,8 @@ snapshots:
+       '@types/qs': 6.14.0
+       '@types/serve-static': 2.2.0
+ 
++  '@types/geoip-lite@1.4.4': {}
++
+   '@types/geojson@7946.0.16': {}
+ 
+   '@types/google.maps@3.58.1': {}
+@@ -7212,6 +7265,10 @@ snapshots:
+       '@opentelemetry/api': 1.9.0
+       zod: 4.3.5
+ 
++  ansi-styles@4.3.0:
++    dependencies:
++      color-convert: 2.0.1
++
+   aria-hidden@1.2.6:
+     dependencies:
+       tslib: 2.8.1
+@@ -7300,6 +7357,11 @@ snapshots:
+       loupe: 3.2.1
+       pathval: 2.0.1
+ 
++  chalk@4.1.2:
++    dependencies:
++      ansi-styles: 4.3.0
++      supports-color: 7.2.0
++
+   character-entities-html4@2.1.0: {}
+ 
+   character-entities-legacy@3.0.0: {}
+@@ -7342,6 +7404,12 @@ snapshots:
+       - '@types/react'
+       - '@types/react-dom'
+ 
++  color-convert@2.0.1:
++    dependencies:
++      color-name: 1.1.4
++
++  color-name@1.1.4: {}
++
+   combined-stream@1.0.8:
+     dependencies:
+       delayed-stream: 1.0.0
+@@ -7921,6 +7989,14 @@ snapshots:
+ 
+   gensync@1.0.0-beta.2: {}
+ 
++  geoip-lite@2.0.3:
++    dependencies:
++      chalk: 4.1.2
++      iconv-lite: 0.6.3
++      ip-address: 10.2.0
++      lazy: 1.0.11
++      yauzl: 3.4.0
++
+   get-east-asian-width@1.4.0: {}
+ 
+   get-intrinsic@1.3.0:
+@@ -7953,6 +8029,8 @@ snapshots:
+ 
+   hachure-fill@0.5.2: {}
+ 
++  has-flag@4.0.0: {}
++
+   has-symbols@1.1.0: {}
+ 
+   has-tostringtag@1.0.2:
+@@ -8128,6 +8206,8 @@ snapshots:
+ 
+   internmap@2.0.3: {}
+ 
++  ip-address@10.2.0: {}
++
+   ipaddr.js@1.9.1: {}
+ 
+   is-alphabetical@2.0.1: {}
+@@ -8177,6 +8257,8 @@ snapshots:
+ 
+   layout-base@2.0.1: {}
+ 
++  lazy@1.0.11: {}
++
+   lightningcss-android-arm64@1.30.2:
+     optional: true
+ 
+@@ -8793,6 +8875,8 @@ snapshots:
+ 
+   pathval@2.0.1: {}
+ 
++  pend@1.2.0: {}
++
+   picocolors@1.1.1: {}
+ 
+   picomatch@4.0.3: {}
+@@ -9260,6 +9344,10 @@ snapshots:
+     dependencies:
+       copy-anything: 3.0.5
+ 
++  supports-color@7.2.0:
++    dependencies:
++      has-flag: 4.0.0
++
+   swr@2.3.8(react@19.2.3):
+     dependencies:
+       dequal: 2.0.3
+@@ -9557,6 +9645,10 @@ snapshots:
+ 
+   yallist@3.1.1: {}
+ 
++  yauzl@3.4.0:
++    dependencies:
++      pend: 1.2.0
++
+   zod@4.3.5: {}
+ 
+   zwitch@2.0.4: {}
+diff --git a/server/_core/index.ts b/server/_core/index.ts
+index fb3f0a6..522b18b 100644
+--- a/server/_core/index.ts
++++ b/server/_core/index.ts
+@@ -34,6 +34,10 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
+ async function startServer() {
+   const app = express();
+   const server = createServer(app);
++  // Railway sits in front of the app behind a proxy; without this,
++  // req.ip would resolve to the proxy's address instead of the visitor's,
++  // breaking IP-based geolocation for analytics.
++  app.set("trust proxy", true);
+   // Configure body parser with larger size limit for file uploads
+   app.use(express.json({ limit: "50mb" }));
+   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+diff --git a/server/db.ts b/server/db.ts
+index 406aaed..12f8d9a 100644
+--- a/server/db.ts
++++ b/server/db.ts
+@@ -233,6 +233,24 @@ export async function trackEvent(data: InsertAnalyticsEvent) {
+   }
+ }
+ 
++function classifyReferrer(referrer: string | null | undefined): string {
++  if (!referrer) return "Direct";
++  let host = "";
++  try {
++    host = new URL(referrer).hostname.replace(/^www\./, "").toLowerCase();
++  } catch {
++    return "Direct";
++  }
++  if (host.includes("google")) return "Google";
++  if (host.includes("bing")) return "Bing";
++  const socialHosts = [
++    "facebook.com", "instagram.com", "twitter.com", "x.com",
++    "linkedin.com", "tiktok.com", "t.co", "reddit.com", "youtube.com",
++  ];
++  if (socialHosts.some(s => host.includes(s))) return "Social";
++  return "Referral";
++}
++
+ export async function getKpiDashboard(period: "week" | "month") {
+   const days = period === "week" ? 7 : 30;
+   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+@@ -245,12 +263,18 @@ export async function getKpiDashboard(period: "week" | "month") {
+     blogViewers: 0,
+     contactSubmissions: 0,
+     conversionRate: 0,
++    newVisitors: 0,
++    returningVisitors: 0,
+     funnel: [
+       { stage: "Visited site", count: 0 },
+       { stage: "Read a blog post", count: 0 },
+       { stage: "Submitted contact form", count: 0 },
+     ],
+     topBlogPosts: [] as { id: number; title: string; slug: string; views: number }[],
++    topPages: [] as { path: string; visitors: number }[],
++    trafficSources: [] as { source: string; count: number }[],
++    deviceBreakdown: [] as { device: string; count: number }[],
++    topCountries: [] as { country: string; count: number }[],
+   };
+ 
+   const db = await getDb();
+@@ -308,6 +332,83 @@ export async function getKpiDashboard(period: "week" | "month") {
+       };
+     });
+ 
++  // Pull raw page_view rows once and derive pages/sources/devices/countries
++  // in memory — cheap at this site's scale, and avoids five more round trips.
++  const pageViewRows = await db
++    .select({
++      sessionId: analyticsEvents.sessionId,
++      pagePath: analyticsEvents.pagePath,
++      referrer: analyticsEvents.referrer,
++      deviceType: analyticsEvents.deviceType,
++      country: analyticsEvents.country,
++      createdAt: analyticsEvents.createdAt,
++    })
++    .from(analyticsEvents)
++    .where(and(eq(analyticsEvents.eventType, "page_view"), gte(analyticsEvents.createdAt, since)))
++    .orderBy(analyticsEvents.createdAt);
++
++  // Top pages: distinct visitors per path, excluding the admin area itself
++  const pageSessionSets = new Map<string, Set<string>>();
++  for (const row of pageViewRows) {
++    if (!row.pagePath || row.pagePath.startsWith("/admin")) continue;
++    if (!pageSessionSets.has(row.pagePath)) pageSessionSets.set(row.pagePath, new Set());
++    pageSessionSets.get(row.pagePath)!.add(row.sessionId);
++  }
++  const topPages = Array.from(pageSessionSets.entries())
++    .map(([path, sessions]) => ({ path, visitors: sessions.size }))
++    .sort((a, b) => b.visitors - a.visitors)
++    .slice(0, 5);
++
++  // Session-level attributes (referrer, device, country) are constant per
++  // session, so take them from each session's earliest row in this period.
++  const firstRowBySession = new Map<string, (typeof pageViewRows)[number]>();
++  for (const row of pageViewRows) {
++    if (!firstRowBySession.has(row.sessionId)) firstRowBySession.set(row.sessionId, row);
++  }
++
++  const deviceCounts = new Map<string, number>();
++  const trafficCounts = new Map<string, number>();
++  const countryCounts = new Map<string, number>();
++  for (const row of Array.from(firstRowBySession.values())) {
++    const device = row.deviceType ? row.deviceType.charAt(0).toUpperCase() + row.deviceType.slice(1) : "Unknown";
++    deviceCounts.set(device, (deviceCounts.get(device) ?? 0) + 1);
++    const source = classifyReferrer(row.referrer);
++    trafficCounts.set(source, (trafficCounts.get(source) ?? 0) + 1);
++    const country = row.country ?? "Unknown";
++    countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
++  }
++  const deviceBreakdown = Array.from(deviceCounts.entries())
++    .map(([device, count]) => ({ device, count }))
++    .sort((a, b) => b.count - a.count);
++  const trafficSources = Array.from(trafficCounts.entries())
++    .map(([source, count]) => ({ source, count }))
++    .sort((a, b) => b.count - a.count);
++  const topCountries = Array.from(countryCounts.entries())
++    .map(([country, count]) => ({ country, count }))
++    .sort((a, b) => b.count - a.count)
++    .slice(0, 5);
++
++  // New vs returning: a session is "returning" if it has any event from
++  // before this period's window started.
++  const sessionIdsInPeriod = Array.from(firstRowBySession.keys());
++  let newVisitors = 0;
++  let returningVisitors = 0;
++  if (sessionIdsInPeriod.length) {
++    const firstSeenRows = await db
++      .select({
++        sessionId: analyticsEvents.sessionId,
++        firstSeen: sql<string>`MIN(${analyticsEvents.createdAt})`,
++      })
++      .from(analyticsEvents)
++      .where(inArray(analyticsEvents.sessionId, sessionIdsInPeriod))
++      .groupBy(analyticsEvents.sessionId);
++
++    for (const row of firstSeenRows) {
++      if (new Date(row.firstSeen) >= since) newVisitors++;
++      else returningVisitors++;
++    }
++  }
++
+   const visits = Number(visitsRow?.visits ?? 0);
+   const pageViews = Number(visitsRow?.pageViews ?? 0);
+   const blogViewers = Number(blogRow?.blogViewers ?? 0);
+@@ -321,11 +422,17 @@ export async function getKpiDashboard(period: "week" | "month") {
+     blogViewers,
+     contactSubmissions: contactCount,
+     conversionRate: visits > 0 ? Math.round((contactCount / visits) * 1000) / 10 : 0,
++    newVisitors,
++    returningVisitors,
+     funnel: [
+       { stage: "Visited site", count: visits },
+       { stage: "Read a blog post", count: blogViewers },
+       { stage: "Submitted contact form", count: contactCount },
+     ],
+     topBlogPosts,
++    topPages,
++    trafficSources,
++    deviceBreakdown,
++    topCountries,
+   };
+ }
+diff --git a/server/routers.ts b/server/routers.ts
+index 7812205..fa1c728 100644
+--- a/server/routers.ts
++++ b/server/routers.ts
+@@ -5,6 +5,7 @@ import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_
+ import { z } from "zod";
+ import { createConsultationRequest, getAllConsultationRequests, createContactSubmission, getAllContactSubmissions, createLead, getLeadByEmail, getAllLeads, getAllBlogPosts, getBlogPostBySlug, getRelatedBlogPosts, trackEvent, getKpiDashboard } from "./db";
+ import { notifyOwner } from "./_core/notification";
++import geoip from "geoip-lite";
+ 
+ export const appRouter = router({
+     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
+@@ -147,10 +148,22 @@ export const appRouter = router({
+           entityId: z.number().optional(),
+           entityType: z.string().optional(),
+           pagePath: z.string().optional(),
++          referrer: z.string().max(500).optional(),
++          deviceType: z.enum(["desktop", "mobile", "tablet"]).optional(),
+         })
+       )
+-      .mutation(async ({ input }) => {
+-        trackEvent(input).catch(() => {});
++      .mutation(async ({ input, ctx }) => {
++        // Country is derived server-side from the request IP, never taken
++        // from the client, so it can't be spoofed.
++        let country: string | undefined;
++        try {
++          const ip = ctx.req.ip;
++          const geo = ip ? geoip.lookup(ip) : null;
++          country = geo?.country ?? undefined;
++        } catch {
++          country = undefined;
++        }
++        trackEvent({ ...input, country }).catch(() => {});
+         return { success: true };
+       }),
+     dashboard: adminProcedure

@@ -32,6 +32,14 @@ export function getSessionId(): string {
   return id;
 }
 
+function detectDeviceType(): "desktop" | "mobile" | "tablet" {
+  if (typeof navigator === "undefined") return "desktop";
+  const ua = navigator.userAgent.toLowerCase();
+  if (/ipad|tablet|(android(?!.*mobile))/i.test(ua)) return "tablet";
+  if (/mobile|android|iphone|ipod|blackberry|iemobile|opera mini/i.test(ua)) return "mobile";
+  return "desktop";
+}
+
 type TrackInput = {
   eventType: string;
   entityId?: number;
@@ -42,6 +50,10 @@ type TrackInput = {
 /**
  * Fire-and-forget analytics tracking. Never blocks the UI and never
  * surfaces errors — a failed tracking call should be invisible.
+ *
+ * document.referrer reflects the referrer at initial page load and doesn't
+ * change on client-side (SPA) navigation, so it naturally captures the
+ * session's true entry source across every event fired afterward.
  */
 function track({ eventType, entityId, entityType, pagePath }: TrackInput) {
   if (typeof window === "undefined") return;
@@ -52,6 +64,8 @@ function track({ eventType, entityId, entityType, pagePath }: TrackInput) {
       entityId,
       entityType,
       pagePath: pagePath ?? window.location.pathname,
+      referrer: document.referrer || undefined,
+      deviceType: detectDeviceType(),
     })
     .catch(() => {
       // Silently ignore — analytics should never break the app

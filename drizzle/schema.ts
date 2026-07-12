@@ -116,6 +116,9 @@ export const analyticsEvents = mysqlTable("analytics_events", {
   entityId: int("entity_id"), // optional: e.g. blog post id this event relates to
   entityType: varchar("entity_type", { length: 32 }), // optional: e.g. 'blog_post'
   pagePath: varchar("page_path", { length: 255 }),
+  referrer: varchar("referrer", { length: 500 }), // document.referrer at time of page_view, if any
+  deviceType: varchar("device_type", { length: 16 }), // 'desktop' | 'mobile' | 'tablet'
+  country: varchar("country", { length: 2 }), // ISO 3166-1 alpha-2, derived server-side from IP
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

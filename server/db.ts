@@ -233,6 +233,24 @@ export async function trackEvent(data: InsertAnalyticsEvent) {
   }
 }
 
+function classifyReferrer(referrer: string | null | undefined): string {
+  if (!referrer) return "Direct";
+  let host = "";
+  try {
+    host = new URL(referrer).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return "Direct";
+  }
+  if (host.includes("google")) return "Google";
+  if (host.includes("bing")) return "Bing";
+  const socialHosts = [
+    "facebook.com", "instagram.com", "twitter.com", "x.com",
+    "linkedin.com", "tiktok.com", "t.co", "reddit.com", "youtube.com",
+  ];
+  if (socialHosts.some(s => host.includes(s))) return "Social";
+  return "Referral";
+}
+
 export async function getKpiDashboard(period: "week" | "month") {
   const days = period === "week" ? 7 : 30;
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -245,12 +263,18 @@ export async function getKpiDashboard(period: "week" | "month") {
     blogViewers: 0,
     contactSubmissions: 0,
     conversionRate: 0,
+    newVisitors: 0,
+    returningVisitors: 0,
     funnel: [
       { stage: "Visited site", count: 0 },
       { stage: "Read a blog post", count: 0 },
       { stage: "Submitted contact form", count: 0 },
     ],
     topBlogPosts: [] as { id: number; title: string; slug: string; views: number }[],
+    topPages: [] as { path: string; visitors: number }[],
+    trafficSources: [] as { source: string; count: number }[],
+    deviceBreakdown: [] as { device: string; count: number }[],
+    topCountries: [] as { country: string; count: number }[],
   };
 
   const db = await getDb();
@@ -308,6 +332,83 @@ export async function getKpiDashboard(period: "week" | "month") {
       };
     });
 
+  // Pull raw page_view rows once and derive pages/sources/devices/countries
+  // in memory — cheap at this site's scale, and avoids five more round trips.
+  const pageViewRows = await db
+    .select({
+      sessionId: analyticsEvents.sessionId,
+      pagePath: analyticsEvents.pagePath,
+      referrer: analyticsEvents.referrer,
+      deviceType: analyticsEvents.deviceType,
+      country: analyticsEvents.country,
+      createdAt: analyticsEvents.createdAt,
+    })
+    .from(analyticsEvents)
+    .where(and(eq(analyticsEvents.eventType, "page_view"), gte(analyticsEvents.createdAt, since)))
+    .orderBy(analyticsEvents.createdAt);
+
+  // Top pages: distinct visitors per path, excluding the admin area itself
+  const pageSessionSets = new Map<string, Set<string>>();
+  for (const row of pageViewRows) {
+    if (!row.pagePath || row.pagePath.startsWith("/admin")) continue;
+    if (!pageSessionSets.has(row.pagePath)) pageSessionSets.set(row.pagePath, new Set());
+    pageSessionSets.get(row.pagePath)!.add(row.sessionId);
+  }
+  const topPages = Array.from(pageSessionSets.entries())
+    .map(([path, sessions]) => ({ path, visitors: sessions.size }))
+    .sort((a, b) => b.visitors - a.visitors)
+    .slice(0, 5);
+
+  // Session-level attributes (referrer, device, country) are constant per
+  // session, so take them from each session's earliest row in this period.
+  const firstRowBySession = new Map<string, (typeof pageViewRows)[number]>();
+  for (const row of pageViewRows) {
+    if (!firstRowBySession.has(row.sessionId)) firstRowBySession.set(row.sessionId, row);
+  }
+
+  const deviceCounts = new Map<string, number>();
+  const trafficCounts = new Map<string, number>();
+  const countryCounts = new Map<string, number>();
+  for (const row of Array.from(firstRowBySession.values())) {
+    const device = row.deviceType ? row.deviceType.charAt(0).toUpperCase() + row.deviceType.slice(1) : "Unknown";
+    deviceCounts.set(device, (deviceCounts.get(device) ?? 0) + 1);
+    const source = classifyReferrer(row.referrer);
+    trafficCounts.set(source, (trafficCounts.get(source) ?? 0) + 1);
+    const country = row.country ?? "Unknown";
+    countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1);
+  }
+  const deviceBreakdown = Array.from(deviceCounts.entries())
+    .map(([device, count]) => ({ device, count }))
+    .sort((a, b) => b.count - a.count);
+  const trafficSources = Array.from(trafficCounts.entries())
+    .map(([source, count]) => ({ source, count }))
+    .sort((a, b) => b.count - a.count);
+  const topCountries = Array.from(countryCounts.entries())
+    .map(([country, count]) => ({ country, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  // New vs returning: a session is "returning" if it has any event from
+  // before this period's window started.
+  const sessionIdsInPeriod = Array.from(firstRowBySession.keys());
+  let newVisitors = 0;
+  let returningVisitors = 0;
+  if (sessionIdsInPeriod.length) {
+    const firstSeenRows = await db
+      .select({
+        sessionId: analyticsEvents.sessionId,
+        firstSeen: sql<string>`MIN(${analyticsEvents.createdAt})`,
+      })
+      .from(analyticsEvents)
+      .where(inArray(analyticsEvents.sessionId, sessionIdsInPeriod))
+      .groupBy(analyticsEvents.sessionId);
+
+    for (const row of firstSeenRows) {
+      if (new Date(row.firstSeen) >= since) newVisitors++;
+      else returningVisitors++;
+    }
+  }
+
   const visits = Number(visitsRow?.visits ?? 0);
   const pageViews = Number(visitsRow?.pageViews ?? 0);
   const blogViewers = Number(blogRow?.blogViewers ?? 0);
@@ -321,11 +422,17 @@ export async function getKpiDashboard(period: "week" | "month") {
     blogViewers,
     contactSubmissions: contactCount,
     conversionRate: visits > 0 ? Math.round((contactCount / visits) * 1000) / 10 : 0,
+    newVisitors,
+    returningVisitors,
     funnel: [
       { stage: "Visited site", count: visits },
       { stage: "Read a blog post", count: blogViewers },
       { stage: "Submitted contact form", count: contactCount },
     ],
     topBlogPosts,
+    topPages,
+    trafficSources,
+    deviceBreakdown,
+    topCountries,
   };
 }

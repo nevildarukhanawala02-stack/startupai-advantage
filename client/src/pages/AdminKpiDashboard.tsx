@@ -20,6 +20,14 @@ const METRIC_CARDS: Array<{
   { key: "conversionRate", label: "Conversion Rate", icon: Percent, format: v => `${v}%` },
 ];
 
+// Converts an ISO 3166-1 alpha-2 code (e.g. "US") into its flag emoji.
+function countryFlag(code: string): string {
+  if (code.length !== 2) return "🌐";
+  return code
+    .toUpperCase()
+    .replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
+}
+
 export default function AdminKpiDashboard() {
   const { data: user, isLoading: authLoading } = trpc.auth.me.useQuery();
   const [, setLocation] = useLocation();
@@ -58,6 +66,8 @@ export default function AdminKpiDashboard() {
   }
 
   const maxFunnelCount = dashboard?.funnel[0]?.count || 1;
+  const totalVisitors = (dashboard?.newVisitors ?? 0) + (dashboard?.returningVisitors ?? 0);
+  const newPct = totalVisitors > 0 ? Math.round(((dashboard?.newVisitors ?? 0) / totalVisitors) * 100) : 0;
 
   return (
     <div className="container mx-auto py-12 max-w-5xl">
@@ -65,7 +75,7 @@ export default function AdminKpiDashboard() {
         <div>
           <h1 className="text-3xl font-bold mb-2">KPI Dashboard</h1>
           <p className="text-muted-foreground">
-            Visits, funnel, and the blog posts driving contact form leads
+            Visits, funnel, traffic sources, and what's driving contact form leads
           </p>
         </div>
         <Tabs value={period} onValueChange={v => setPeriod(v as "week" | "month")}>
@@ -119,6 +129,34 @@ export default function AdminKpiDashboard() {
             </CardContent>
           </Card>
 
+          {/* New vs returning */}
+          <Card>
+            <CardHeader>
+              <CardTitle>New vs Returning Visitors</CardTitle>
+              <CardDescription>
+                {totalVisitors === 0
+                  ? "No visitors in this period yet"
+                  : `${newPct}% new, ${100 - newPct}% returning`}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex h-3 rounded-full overflow-hidden bg-muted">
+                <div className="bg-cyan-500" style={{ width: `${newPct}%` }} />
+                <div className="bg-orange-400" style={{ width: `${100 - newPct}%` }} />
+              </div>
+              <div className="flex justify-between mt-2 text-sm">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-cyan-500 inline-block" />
+                  New — {dashboard.newVisitors.toLocaleString()}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-orange-400 inline-block" />
+                  Returning — {dashboard.returningVisitors.toLocaleString()}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Top blog posts */}
           <Card>
             <CardHeader>
@@ -150,6 +188,103 @@ export default function AdminKpiDashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* Top pages + traffic sources */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Pages</CardTitle>
+                <CardDescription>Most-visited pages, this {period}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboard.topPages.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">No page views yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {dashboard.topPages.map((page, i) => (
+                      <div key={page.path} className="flex items-center justify-between py-1.5 border-b last:border-0">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="text-sm font-semibold text-muted-foreground w-5">{i + 1}</span>
+                          <span className="truncate text-sm">{page.path}</span>
+                        </div>
+                        <span className="text-sm font-medium text-cyan-500 shrink-0 ml-4">
+                          {page.visitors.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Traffic Sources</CardTitle>
+                <CardDescription>Where visitors came from, this {period}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboard.trafficSources.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">No visitors yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {dashboard.trafficSources.map(({ source, count }) => (
+                      <div key={source} className="flex items-center justify-between py-1.5 border-b last:border-0">
+                        <span className="text-sm">{source}</span>
+                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Device breakdown + top countries */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Device Type</CardTitle>
+                <CardDescription>Desktop vs mobile vs tablet, this {period}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboard.deviceBreakdown.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">No visitors yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {dashboard.deviceBreakdown.map(({ device, count }) => (
+                      <div key={device} className="flex items-center justify-between py-1.5 border-b last:border-0">
+                        <span className="text-sm">{device}</span>
+                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Countries</CardTitle>
+                <CardDescription>Visitor locations, this {period}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {dashboard.topCountries.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-6 text-center">No visitors yet</p>
+                ) : (
+                  <div className="space-y-3">
+                    {dashboard.topCountries.map(({ country, count }) => (
+                      <div key={country} className="flex items-center justify-between py-1.5 border-b last:border-0">
+                        <span className="text-sm">
+                          {countryFlag(country)} {country}
+                        </span>
+                        <span className="text-sm font-medium text-cyan-500">{count.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
     </div>

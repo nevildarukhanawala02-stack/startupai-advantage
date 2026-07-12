@@ -10,6 +10,7 @@ export default function RouteTracker() {
   const [location] = useLocation();
 
   useEffect(() => {
+    if (location.startsWith("/admin")) return;
     trackPageView(location);
   }, [location]);
 

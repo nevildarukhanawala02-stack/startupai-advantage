@@ -5,6 +5,7 @@ import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_
 import { z } from "zod";
 import { createConsultationRequest, getAllConsultationRequests, createContactSubmission, getAllContactSubmissions, createLead, getLeadByEmail, getAllLeads, getAllBlogPosts, getBlogPostBySlug, getRelatedBlogPosts, trackEvent, getKpiDashboard } from "./db";
 import { notifyOwner } from "./_core/notification";
+import geoip from "geoip-lite";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -147,10 +148,22 @@ export const appRouter = router({
           entityId: z.number().optional(),
           entityType: z.string().optional(),
           pagePath: z.string().optional(),
+          referrer: z.string().max(500).optional(),
+          deviceType: z.enum(["desktop", "mobile", "tablet"]).optional(),
         })
       )
-      .mutation(async ({ input }) => {
-        trackEvent(input).catch(() => {});
+      .mutation(async ({ input, ctx }) => {
+        // Country is derived server-side from the request IP, never taken
+        // from the client, so it can't be spoofed.
+        let country: string | undefined;
+        try {
+          const ip = ctx.req.ip;
+          const geo = ip ? geoip.lookup(ip) : null;
+          country = geo?.country ?? undefined;
+        } catch {
+          country = undefined;
+        }
+        trackEvent({ ...input, country }).catch(() => {});
         return { success: true };
       }),
     dashboard: adminProcedure
