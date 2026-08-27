@@ -252,6 +252,19 @@ export default function Header() {
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
+
+          <Link href="/get-started">
+            <a
+              className="text-sm font-bold px-4 py-2 rounded-full transition-all whitespace-nowrap"
+              style={{
+                background: 'linear-gradient(135deg, #F26522, #e05510)',
+                color: '#fff',
+                boxShadow: '0 4px 15px rgba(242,101,34,0.3)',
+              }}
+            >
+              Get Started →
+            </a>
+          </Link>
         </nav>
 
         {/* Mobile Menu Button */}
