@@ -133,7 +133,7 @@ export default function Pricing() {
             {/* Retainer Card */}
             <div style={{ borderRadius: '16px', padding: 'clamp(24px,4vw,40px)', background: 'linear-gradient(135deg, rgba(242,101,34,0.10) 0%, rgba(242,101,34,0.03) 100%)', border: '1px solid rgba(242,101,34,0.25)' }}>
               <span style={{ fontSize: '10px', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 500, color: '#F26522', display: 'block', marginBottom: '22px' }}>Monthly Intelligence Retainer — Ongoing</span>
-              <span style={{ fontSize: 'clamp(38px,8vw,54px)', fontWeight: 800, lineHeight: 1, letterSpacing: '-2px', display: 'block', marginBottom: '8px', color: '#F26522' }}>₹1,25,000</span>
+              <span style={{ fontSize: 'clamp(38px,8vw,54px)', fontWeight: 800, lineHeight: 1, letterSpacing: '-2px', display: 'block', marginBottom: '8px', color: '#F26522' }}>₹50,000</span>
               <span style={{ fontSize: '13px', color: '#8896A5', fontWeight: 300, display: 'block', marginBottom: '24px' }}>per month · minimum 3 months</span>
               <div style={{ fontSize: '14px', color: '#8896A5', lineHeight: 1.7, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '22px', fontWeight: 300 }}>
                 Not a subscription to software. A commitment to your intelligence — maintained, evolved, and deepened every month. Includes two CEO review sessions, ongoing system enhancements, and everything listed below.
