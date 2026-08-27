@@ -3,7 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import { z } from "zod";
-import { createConsultationRequest, getAllConsultationRequests, createContactSubmission, getAllContactSubmissions, createLead, getLeadByEmail, getAllLeads, getAllBlogPosts, getBlogPostBySlug, getRelatedBlogPosts, trackEvent, getKpiDashboard } from "./db";
+import { createConsultationRequest, getAllConsultationRequests, createContactSubmission, getAllContactSubmissions, createLead, getAllLeads, getAllBlogPosts, getBlogPostBySlug, getRelatedBlogPosts, trackEvent, getKpiDashboard } from "./db";
 import { notifyOwner } from "./_core/notification";
 import geoip from "geoip-lite";
 
@@ -74,42 +74,6 @@ export const appRouter = router({
     list: protectedProcedure.query(async () => {
       return await getAllContactSubmissions();
     }),
-  }),
-
-  resources: router({
-    downloadGuide: publicProcedure
-      .input(
-        z.object({
-          name: z.string().min(1, "Name is required"),
-          email: z.string().email("Valid email is required"),
-        })
-      )
-      .mutation(async ({ input }) => {
-        // Check if email already exists
-        const existingLead = await getLeadByEmail(input.email);
-        
-        // Only create new lead if email doesn't exist
-        if (!existingLead) {
-          await createLead({
-            name: input.name,
-            email: input.email,
-            source: "lead_magnet",
-            resourceDownloaded: "Startup AI Advantage Lead Magnet Guide",
-          });
-          
-          // Notify owner of new lead
-          await notifyOwner({
-            title: "New Lead Captured",
-            content: `New lead from Resources page:\n\nName: ${input.name}\nEmail: ${input.email}\nResource: Startup AI Advantage Lead Magnet Guide`,
-          });
-        }
-        
-        // Return PDF URL for download
-        return { 
-          success: true,
-          pdfUrl: "/files/saa-guide.pdf"
-        };
-      }),
   }),
 
   blog: router({
