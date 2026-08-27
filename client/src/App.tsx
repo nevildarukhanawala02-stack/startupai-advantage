@@ -33,6 +33,8 @@ import WhatsAppButton from "./components/WhatsAppButton";
 import ScrollToTop from "./components/ScrollToTop";
 import RouteTracker from "./components/RouteTracker";
 import AdminKpiDashboard from "./pages/AdminKpiDashboard";
+import AdminConsultations from "./pages/AdminConsultations";
+import AdminContacts from "./pages/AdminContacts";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -68,6 +70,8 @@ function Router() {
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin/leads" component={AdminLeads} />
       <Route path="/admin/analytics" component={AdminKpiDashboard} />
+      <Route path="/admin/consultations" component={AdminConsultations} />
+      <Route path="/admin/contacts" component={AdminContacts} />
       
       {/* Blog */}
       <Route path="/blog" component={Blog} />
