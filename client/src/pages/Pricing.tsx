@@ -13,16 +13,16 @@ const dataSources = [
 ];
 
 const syncRows = [
-  { source: 'Accounting sync', detail: '₹ movements, receivables aging, margin shifts, payment delays', freq: '4× daily' },
-  { source: 'CRM sync', detail: 'Pipeline changes, customer activity, contact gap detection', freq: 'Every 2 hrs' },
-  { source: 'ERP / inventory sync', detail: 'Stock levels, reorder triggers, supplier delivery performance', freq: '2× daily' },
-  { source: 'Ecommerce sync', detail: 'Order velocity, returns, demand spikes by SKU and geography', freq: 'Hourly' },
-  { source: 'Email analysis', detail: 'Last-contact scanning, response gap detection, dormant accounts', freq: 'Every 3 hrs' },
-  { source: 'WhatsApp digest', detail: 'Complaint pattern recognition, distributor communication health', freq: 'Daily digest' },
+  { source: 'Accounting sync', detail: '₹ movements, receivables aging, margin shifts, payment delays', freq: 'Multiple times daily' },
+  { source: 'CRM sync', detail: 'Pipeline changes, customer activity, contact gap detection', freq: 'Continuously' },
+  { source: 'ERP / inventory sync', detail: 'Stock levels, reorder triggers, supplier delivery performance', freq: 'Multiple times daily' },
+  { source: 'Ecommerce sync', detail: 'Order velocity, returns, demand spikes by SKU and geography', freq: 'Continuously' },
+  { source: 'Email analysis', detail: 'Last-contact scanning, response gap detection, dormant accounts', freq: 'Regularly' },
+  { source: 'WhatsApp digest', detail: 'Complaint pattern recognition, distributor communication health', freq: 'Daily' },
 ];
 
 const aiLayers = [
-  { name: 'Pattern recognition', desc: 'Across all 7 data sources simultaneously — finding what no single system can see' },
+  { name: 'Pattern recognition', desc: 'Across every connected data source simultaneously — finding what no single system can see' },
   { name: 'Anomaly detection', desc: "Flagging what's changed, what's drifting, what's quietly building — before it costs you" },
   { name: 'Opportunity mapping', desc: 'Revenue hiding in the gaps between your CRM and your ERP — surfaced automatically' },
   { name: 'Threat scoring', desc: 'Risks ranked by proximity and financial impact — so you act on what matters first' },
@@ -37,8 +37,8 @@ const deliveryCards = [
   },
   {
     time: 'On demand — any time', timeColor: '#F26522', featured: true,
-    title: 'Ask any question. Get the answer in 15 seconds.',
-    items: ["Ask across all 7 data sources in plain language", 'Live charts generated on request', '"Which customers haven\'t been contacted in 30+ days with declining order value?" — answered instantly', 'No analyst. No 3-day turnaround. No spreadsheet.'],
+    title: 'Ask any question. Get the answer instantly.',
+    items: ["Ask across every connected data source in plain language", 'Live charts generated on request', '"Which customers haven\'t been contacted in a while, with declining order value?" — answered instantly', 'No analyst. No slow turnaround. No spreadsheet.'],
   },
   {
     time: 'Proactive alerts', timeColor: '#0BA5DC', featured: false,
@@ -50,7 +50,7 @@ const deliveryCards = [
 const monthlyCards = [
   {
     time: 'Monthly — with Nevil', timeColor: '#0BA5DC', alt: false,
-    title: 'Two CEO intelligence reviews',
+    title: 'Ongoing CEO intelligence reviews',
     items: ['Review what the intelligence surfaced and what it means for the month ahead', 'New KPIs, alerts, and dashboards added as your business evolves', 'Your system gets smarter every month — not static'],
   },
   {
@@ -62,14 +62,14 @@ const monthlyCards = [
 
 const securityItems = [
   { icon: '🔐', title: 'Your Data Stays Yours', desc: "We never store, sell, or share your business data with third parties. Your CRM, ERP, and financial data is used exclusively to generate your intelligence — and no one else's." },
-  { icon: '🔒', title: 'Encrypted in Transit & at Rest', desc: 'All data connections use TLS 1.3 encryption. Data processed and stored by CEO Intel is encrypted at rest using AES-256 — the same standard used by global banks.' },
+  { icon: '🔒', title: 'Encrypted in Transit & at Rest', desc: 'All data connections use industry-leading transport encryption. Data processed and stored by CEO Intel is encrypted at rest using bank-grade encryption standards — the same class of protection used by global banks.' },
   { icon: '🏢', title: 'Isolated Client Environments', desc: "Every CEO Intel deployment is a completely isolated environment. Your data is never co-mingled with another client's data — architecturally separated at every layer." },
   { icon: '📋', title: 'Formal Data Processing Agreement', desc: 'Every engagement begins with a signed Data Processing Agreement (DPA) that legally defines what data we access, how it is used, and your rights as the data owner.' },
   { icon: '🔑', title: 'Minimal Access Principle', desc: 'We request only the specific read permissions required to answer your intelligence questions. We do not request write access to any of your source systems.' },
-  { icon: '🗑️', title: 'Right to Deletion', desc: 'When your engagement ends, all copies of your data held within the CEO Intel system are permanently deleted within 30 days — with written confirmation provided.' },
+  { icon: '🗑️', title: 'Right to Deletion', desc: 'When your engagement ends, all copies of your data held within the CEO Intel system are permanently deleted within a short, clearly defined window — with written confirmation provided.' },
 ];
 
-const pills = ['Go live in 20–30 days', '7 data sources connected', '340+ daily intelligence processes', '3-month minimum commitment'];
+const pills = ['Fast, focused go-live', 'Every system you use — connected', 'Continuous intelligence, day and night', 'A real partnership, not a subscription'];
 
 export default function Pricing() {
   return (
@@ -82,10 +82,10 @@ export default function Pricing() {
         <div className="w-full max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-12" style={{ position: 'relative', zIndex: 1 }}>
           <span style={{ fontSize: '11px', fontWeight: 500, letterSpacing: '3px', textTransform: 'uppercase', color: '#0BA5DC', display: 'block', marginBottom: '16px' }}>CEO Intel — Pricing</span>
           <h1 style={{ fontSize: 'clamp(32px, 7vw, 62px)', fontWeight: 800, lineHeight: 1.04, letterSpacing: '-1.5px', marginBottom: '26px', color: '#FFFFFF' }}>
-            One system.<br />Everything <span style={{ color: '#F26522' }}>connected.</span><br />One price.
+            One system.<br />Everything <span style={{ color: '#F26522' }}>connected.</span><br />Built around you.
           </h1>
           <p style={{ fontSize: 'clamp(15px, 2.5vw, 18px)', fontWeight: 300, color: '#C5D0DC', maxWidth: '640px', lineHeight: 1.75, marginBottom: '44px' }}>
-            No dashboards nobody uses. No IT implementation that takes six months. CEO Intel goes live in 20–30 days — and starts telling you things your business already knows, but you've never been able to hear.
+            No dashboards nobody uses. No IT implementation that drags on forever. CEO Intel goes live fast — and starts telling you things your business already knows, but you've never been able to hear.
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
             {pills.map((pill) => (
@@ -98,47 +98,73 @@ export default function Pricing() {
         </div>
       </section>
 
-      {/* ── SECTION 2: PRICING CARDS ── */}
+      {/* ── SECTION 2: INVESTMENT ── */}
       <section style={{ padding: 'clamp(56px,8vw,88px) 0' }}>
         <div className="w-full max-w-[1100px] mx-auto px-4 sm:px-6 lg:px-12">
           <div style={{ marginBottom: '48px' }}>
             <span style={{ fontSize: '11px', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 500, color: '#0BA5DC', display: 'block', marginBottom: '16px' }}>Investment</span>
             <h2 style={{ fontSize: 'clamp(24px, 5vw, 42px)', fontWeight: 700, letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '14px', color: '#FFFFFF' }}>
-              Straightforward.<br />Two numbers. That's it.
+              Straightforward.<br />Built around your business.
             </h2>
             <p style={{ fontSize: '15px', color: '#8896A5', maxWidth: '560px', lineHeight: 1.75, fontWeight: 300 }}>
               No tier confusion. No feature gating. Every client gets the complete CEO Intel system — built around their specific data, their specific business, their specific questions.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            {/* Setup Card */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* What's Included Card */}
             <div style={{ borderRadius: '16px', padding: 'clamp(24px,4vw,40px)', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <span style={{ fontSize: '10px', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 500, color: '#0BA5DC', display: 'block', marginBottom: '22px' }}>Intelligence Architecture Fee — One Time</span>
-              <span style={{ fontSize: 'clamp(38px,8vw,54px)', fontWeight: 800, lineHeight: 1, letterSpacing: '-2px', display: 'block', marginBottom: '8px', color: '#FFFFFF' }}>₹1,50,000</span>
-              <span style={{ fontSize: '13px', color: '#8896A5', fontWeight: 300, display: 'block', marginBottom: '24px' }}>paid in two equal parts</span>
-              <div style={{ fontSize: '14px', color: '#8896A5', lineHeight: 1.7, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '22px', fontWeight: 300 }}>
-                This covers building your custom intelligence layer — mapping your specific data sources, your KPIs, your business language — onto the CEO Intel platform.
-                <div className="grid grid-cols-2 gap-3 mt-5">
-                  {[{ amount: '₹75,000', label: 'On engagement' }, { amount: '₹75,000', label: 'At go-live' }].map((p) => (
-                    <div key={p.label} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', padding: '14px 16px', textAlign: 'center' }}>
-                      <span style={{ fontSize: '19px', fontWeight: 700, color: '#FFFFFF', display: 'block' }}>{p.amount}</span>
-                      <span style={{ fontSize: '11px', color: '#8896A5', display: 'block', marginTop: '4px' }}>{p.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <span style={{ fontSize: '10px', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 500, color: '#0BA5DC', display: 'block', marginBottom: '18px' }}>Custom Intelligence Build</span>
+              <h3 style={{ fontSize: '19px', fontWeight: 700, color: '#FFFFFF', marginBottom: '14px', letterSpacing: '-0.3px' }}>Built once, tailored entirely to you</h3>
+              <p style={{ fontSize: '14px', color: '#8896A5', lineHeight: 1.75, fontWeight: 300, margin: 0 }}>
+                A one-time build that maps your specific data sources, your KPIs, your business language — onto the CEO Intel platform. Not a template. Not a generic setup. Built around how your business actually runs.
+              </p>
             </div>
 
-            {/* Retainer Card */}
+            {/* Ongoing Partnership Card */}
             <div style={{ borderRadius: '16px', padding: 'clamp(24px,4vw,40px)', background: 'linear-gradient(135deg, rgba(242,101,34,0.10) 0%, rgba(242,101,34,0.03) 100%)', border: '1px solid rgba(242,101,34,0.25)' }}>
-              <span style={{ fontSize: '10px', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 500, color: '#F26522', display: 'block', marginBottom: '22px' }}>Monthly Intelligence Retainer — Ongoing</span>
-              <span style={{ fontSize: 'clamp(38px,8vw,54px)', fontWeight: 800, lineHeight: 1, letterSpacing: '-2px', display: 'block', marginBottom: '8px', color: '#F26522' }}>₹50,000</span>
-              <span style={{ fontSize: '13px', color: '#8896A5', fontWeight: 300, display: 'block', marginBottom: '24px' }}>per month · minimum 3 months</span>
-              <div style={{ fontSize: '14px', color: '#8896A5', lineHeight: 1.7, borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '22px', fontWeight: 300 }}>
-                Not a subscription to software. A commitment to your intelligence — maintained, evolved, and deepened every month. Includes two CEO review sessions, ongoing system enhancements, and everything listed below.
-              </div>
+              <span style={{ fontSize: '10px', letterSpacing: '3px', textTransform: 'uppercase', fontWeight: 500, color: '#F26522', display: 'block', marginBottom: '18px' }}>Ongoing Intelligence Partnership</span>
+              <h3 style={{ fontSize: '19px', fontWeight: 700, color: '#FFFFFF', marginBottom: '14px', letterSpacing: '-0.3px' }}>Not a subscription. A partnership.</h3>
+              <p style={{ fontSize: '14px', color: '#8896A5', lineHeight: 1.75, fontWeight: 300, margin: 0 }}>
+                A simple monthly commitment to your intelligence — maintained, evolved, and deepened over time. Includes regular CEO review sessions, ongoing system enhancements, and everything listed below.
+              </p>
             </div>
+          </div>
+
+          {/* Pain Points Solved */}
+          <div style={{ marginBottom: '32px' }}>
+            <h3 style={{ fontSize: '15px', fontWeight: 700, color: '#FFFFFF', marginBottom: '18px', letterSpacing: '-0.2px' }}>What This Replaces</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                'Waiting on a report that\u2019s already out of date by the time it lands',
+                'Guessing which customer is about to walk away',
+                'Finding out about a stockout the day it happens',
+                'Your team burning hours pulling numbers from different systems by hand',
+                'Cash flow surprises a simple reminder could have prevented',
+                'Making calls on gut feel because the real picture is scattered across five tools',
+              ].map((point) => (
+                <div key={point} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '10px', padding: '14px 16px' }}>
+                  <span style={{ color: '#F26522', fontSize: '13px', flexShrink: 0, marginTop: '2px' }}>✕</span>
+                  <span style={{ fontSize: '13px', color: '#C5D0DC', lineHeight: 1.6, fontWeight: 300 }}>{point}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pricing CTA Callout */}
+          <div style={{ background: 'linear-gradient(135deg, rgba(11,165,220,0.08) 0%, rgba(242,101,34,0.05) 100%)', border: '1px solid rgba(11,165,220,0.20)', borderRadius: '14px', padding: 'clamp(24px,4vw,36px)', textAlign: 'center', marginBottom: '20px' }}>
+            <h3 style={{ fontSize: 'clamp(18px,3vw,24px)', fontWeight: 700, color: '#FFFFFF', marginBottom: '10px', letterSpacing: '-0.3px' }}>
+              Pricing built around your business, not a rate card.
+            </h3>
+            <p style={{ fontSize: '14px', color: '#8896A5', maxWidth: '540px', margin: '0 auto 24px', lineHeight: 1.75, fontWeight: 300 }}>
+              Every engagement is scoped to your data, your systems, and your goals — so what you invest matches the value you get. Affordable, transparent, and worked out with you directly. No published rate card, no surprises.
+            </p>
+            <Link href="/get-started">
+              <a style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: '#F26522', color: '#FFFFFF', fontSize: '14px', fontWeight: 700, padding: '14px 32px', borderRadius: '100px', textDecoration: 'none', letterSpacing: '0.3px' }}>
+                Get Your Custom Pricing
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </a>
+            </Link>
           </div>
 
           {/* Commitment Bar */}
@@ -147,7 +173,7 @@ export default function Pricing() {
               <svg viewBox="0 0 24 24" fill="none" stroke="#0BA5DC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
             <p style={{ fontSize: '14px', color: '#C5D0DC', lineHeight: 1.6, fontWeight: 300, margin: 0 }}>
-              <strong style={{ color: '#FFFFFF', fontWeight: 500 }}>3-month minimum commitment.</strong> CEO Intel needs time to learn your business patterns and deliver compounding value — not just week-one novelty. Most clients surface their first significant insight within the first 14 days.
+              <strong style={{ color: '#FFFFFF', fontWeight: 500 }}>A real commitment, not a quick trial.</strong> CEO Intel needs time to learn your business patterns and deliver compounding value — not just week-one novelty. Most clients see meaningful insight early on, and the value compounds from there.
             </p>
           </div>
         </div>
@@ -181,7 +207,7 @@ export default function Pricing() {
           </div>
 
           <div style={{ textAlign: 'center', fontWeight: 700, color: '#FFFFFF', padding: '24px 20px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', background: 'rgba(255,255,255,0.04)', fontSize: 'clamp(16px,3vw,21px)', letterSpacing: '-0.3px' }}>
-            7 systems. One intelligence layer. <span style={{ color: '#F26522' }}>All connected.</span>
+            Every system. One intelligence layer. <span style={{ color: '#F26522' }}>All connected.</span>
           </div>
         </div>
       </section>
@@ -199,16 +225,16 @@ export default function Pricing() {
             <p style={{ fontSize: '15px', color: '#8896A5', maxWidth: '560px', lineHeight: 1.75, fontWeight: 300 }}>Every day. Invisibly. Automatically. Whether you ask a question or not.</p>
           </div>
 
-          {/* 340+ block */}
+          {/* Continuous intelligence block */}
           <div style={{ background: 'linear-gradient(135deg, rgba(11,165,220,0.08) 0%, rgba(11,165,220,0.02) 100%)', border: '1px solid rgba(11,165,220,0.20)', borderRadius: '16px', padding: 'clamp(24px,4vw,36px)', marginBottom: '28px' }}>
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
               <div style={{ textAlign: 'center', flexShrink: 0 }}>
-                <span style={{ fontSize: 'clamp(42px,8vw,58px)', fontWeight: 800, color: '#0BA5DC', lineHeight: 1, display: 'block', letterSpacing: '-2px' }}>340+</span>
-                <span style={{ fontSize: '11px', color: '#8896A5', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'block', marginTop: '8px' }}>Daily processes</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#0BA5DC" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" width="44" height="44"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span style={{ fontSize: '11px', color: '#8896A5', letterSpacing: '1.5px', textTransform: 'uppercase', display: 'block', marginTop: '10px' }}>Continuous intelligence</span>
               </div>
               <div className="hidden sm:block" style={{ width: '1px', height: '80px', background: 'rgba(11,165,220,0.18)', flexShrink: 0 }} />
               <div style={{ fontSize: '15px', color: '#C5D0DC', lineHeight: 1.8, fontWeight: 300 }}>
-                Every 24 hours, CEO Intel runs <strong style={{ color: '#FFFFFF', fontWeight: 500 }}>340+ automated intelligence processes</strong> across your connected data — syncing, scanning, pattern-matching, and alerting — so that when you open your phone, walk into a meeting, or type a question, the answer is already there.
+                Around the clock, CEO Intel runs <strong style={{ color: '#FFFFFF', fontWeight: 500 }}>a constant stream of automated intelligence processes</strong> across your connected data — syncing, scanning, pattern-matching, and alerting — so that when you open your phone, walk into a meeting, or type a question, the answer is already there.
               </div>
             </div>
           </div>
@@ -241,7 +267,7 @@ export default function Pricing() {
               ))}
             </div>
             <div style={{ marginTop: '20px', fontSize: '13px', color: '#8896A5', fontStyle: 'italic', textAlign: 'center' }}>
-              This runs <strong style={{ color: '#F26522', fontStyle: 'normal', fontWeight: 500 }}>24 hours a day</strong> — whether you open the system or not.
+              This runs <strong style={{ color: '#F26522', fontStyle: 'normal', fontWeight: 500 }}>continuously</strong> — whether you open the system or not.
             </div>
           </div>
         </div>
@@ -349,7 +375,7 @@ export default function Pricing() {
               Walk into every room <span style={{ color: '#F26522' }}>knowing.</span>
             </h2>
             <p style={{ fontSize: 'clamp(14px,2.5vw,17px)', color: '#8896A5', maxWidth: '540px', margin: '0 auto 36px', lineHeight: 1.75, fontWeight: 300 }}>
-              Book a 45-minute discovery call. We'll show you exactly what CEO Intel would surface in your business — using your data, your questions, your industry. No pitch. No pressure. Just intelligence.
+              Book a discovery call. We'll show you exactly what CEO Intel would surface in your business — using your data, your questions, your industry. No pitch. No pressure. Just intelligence.
             </p>
             <Link href="/get-started">
               <a style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', background: '#F26522', color: '#FFFFFF', fontSize: '15px', fontWeight: 700, padding: '16px 36px', borderRadius: '100px', textDecoration: 'none', letterSpacing: '0.3px' }}>
@@ -358,7 +384,7 @@ export default function Pricing() {
               </a>
             </Link>
             <div style={{ marginTop: '18px', fontSize: '13px', color: '#8896A5', fontWeight: 300 }}>
-              No commitment required <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.15)' }}>·</span> No generic pitch <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.15)' }}>·</span> Go live in 20–30 days
+              No commitment required <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.15)' }}>·</span> No generic pitch <span style={{ margin: '0 8px', color: 'rgba(255,255,255,0.15)' }}>·</span> Fast, focused onboarding
             </div>
           </div>
         </div>
