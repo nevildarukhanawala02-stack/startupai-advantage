@@ -17,6 +17,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Resources from "./pages/Resources";
 import GetStarted from "./pages/GetStarted";
+import CeoIntelLite from "./pages/CeoIntelLite";
 import AdminLeads from "./pages/AdminLeads";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
@@ -64,6 +65,7 @@ function Router() {
       <Route path="/contact" component={Contact} />
       <Route path="/resources" component={Resources} />
       <Route path="/get-started" component={GetStarted} />
+      <Route path="/ceo-intel-lite" component={CeoIntelLite} />
       
       {/* Admin Pages */}
       <Route path="/admin" component={Admin} />
