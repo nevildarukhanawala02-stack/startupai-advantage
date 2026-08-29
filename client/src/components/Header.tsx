@@ -83,6 +83,18 @@ export default function Header() {
                         </Link>
                       </NavigationMenuLink>
                     </li>
+                    <li className="border-t border-cyan-500/20 mt-1 pt-3">
+                      <NavigationMenuLink asChild>
+                        <Link href="/ceo-intel-lite">
+                          <a className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-secondary/20 hover:border-l-4 hover:border-secondary focus:bg-secondary/20">
+                            <div className="text-sm font-medium leading-none text-white">CEO Intel Lite</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-300">
+                              One brief, every morning — for growing B2B businesses
+                            </p>
+                          </a>
+                        </Link>
+                      </NavigationMenuLink>
+                    </li>
                   </ul>
                 </NavigationMenuContent>
               </NavigationMenuItem>
@@ -306,6 +318,11 @@ export default function Header() {
                   <Link href="/intelligence-systems/market-competitive">
                     <a className="flex items-center gap-2 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-secondary/20 rounded-lg transition-colors" onClick={() => setMobileMenuOpen(false)}>
                       <span className="text-cyan-400">📊</span> Market & Competitive
+                    </a>
+                  </Link>
+                  <Link href="/ceo-intel-lite">
+                    <a className="flex items-center gap-2 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-secondary/20 rounded-lg transition-colors border-t border-cyan-500/20 mt-1 pt-3" onClick={() => setMobileMenuOpen(false)}>
+                      <span className="text-cyan-400">💡</span> CEO Intel Lite
                     </a>
                   </Link>
                 </div>
