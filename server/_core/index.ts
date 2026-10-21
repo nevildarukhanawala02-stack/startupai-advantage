@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { blogSSRMiddleware } from "../blogSSR";
+import { pageMetaSSRMiddleware } from "../pageMetaSSR";
 import { sitemapMiddleware, robotsTxtMiddleware } from "../sitemap";
 import { registerStorageProxy } from "./storageProxy";
 
@@ -61,6 +62,9 @@ async function startServer() {
 
   // SSR for blog routes (serves full HTML to crawlers before SPA takes over)
   app.use(blogSSRMiddleware());
+
+  // Per-route head tags (title, description, social, canonical, FAQ schema) for product pages
+  app.use(pageMetaSSRMiddleware());
 
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
