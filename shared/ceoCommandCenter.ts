@@ -40,10 +40,9 @@ export const CEO_COMMAND_CENTER_FAQS: CommandCenterFaq[] = [
   },
   {
     q: "Who is it for?",
-    a: "D2C founders and CEOs who run ads, agencies, marketplaces and stock across many tools and want to decide with the full picture.",
+    a: "D2C founders and CEOs who run ads, agencies, marketplaces and stock across many tools and want to decide with the full picture. Built for Indian businesses \u20B910\u2013200 Cr.",
     aPlain:
-      "D2C founders and CEOs who run ads, agencies, marketplaces and stock across many tools and want to decide with the full picture.",
-    confirm: "add \u201CBuilt for Indian businesses \u20B910\u2013200 Cr\u201D, as elsewhere on the site, if it applies to D2C",
+      "D2C founders and CEOs who run ads, agencies, marketplaces and stock across many tools and want to decide with the full picture. Built for Indian businesses \u20B910\u2013200 Cr.",
   },
   {
     q: "Is it a subscription?",
