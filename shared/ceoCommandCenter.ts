@@ -70,10 +70,10 @@ export const CEO_COMMAND_CENTER_FAQS: CommandCenterFaq[] = [
   },
   {
     q: "Is my data safe?",
-    // Brief: do not write a security claim from memory. Answer must come from the repo's security documentation.
-    a: "",
-    aPlain: "",
-    confirm: "answer from the repo\u2019s security documentation before publishing. Do not write a security claim from memory.",
+    // Source: ceo-command-center repo, docs/SECURITY.md. Approved by Nevil.
+    a: "Security is built in from the start. Each person signs in with their own account and sees only what their role allows, and repeated wrong-password attempts are blocked. The AI can only read, never change anything, and it works from the worked-out answers your numbers produce, not from customer names, phone numbers or addresses. Before any real data is connected, we agree with you what goes where, including how the AI provider handles it.",
+    aPlain:
+      "Security is built in from the start. Each person signs in with their own account and sees only what their role allows, and repeated wrong-password attempts are blocked. The AI can only read, never change anything, and it works from the worked-out answers your numbers produce, not from customer names, phone numbers or addresses. Before any real data is connected, we agree with you what goes where, including how the AI provider handles it.",
   },
   {
     q: "Can I see it first?",
