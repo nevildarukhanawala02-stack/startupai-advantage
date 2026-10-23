@@ -18,6 +18,7 @@ import Contact from "./pages/Contact";
 import Resources from "./pages/Resources";
 import GetStarted from "./pages/GetStarted";
 import CeoIntelLite from "./pages/CeoIntelLite";
+import CeoCommandCenter from "./pages/CeoCommandCenter";
 import AdminLeads from "./pages/AdminLeads";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/intelligence-systems/revenue-growth" component={RevenueGrowth} />
       <Route path="/intelligence-systems/operational-excellence" component={OperationalExcellence} />
       <Route path="/intelligence-systems/market-competitive" component={MarketCompetitive} />
+      <Route path="/intelligence-systems/ceo-command-center" component={CeoCommandCenter} />
       
       {/* Solutions */}
       <Route path="/solutions/manufacturing" component={Manufacturing} />

@@ -19,6 +19,7 @@ const STATIC_PAGES = [
   { loc: "/intelligence-systems/revenue-growth", priority: "0.7", changefreq: "monthly" },
   { loc: "/intelligence-systems/operational-excellence", priority: "0.7", changefreq: "monthly" },
   { loc: "/intelligence-systems/market-competitive", priority: "0.7", changefreq: "monthly" },
+  { loc: "/intelligence-systems/ceo-command-center", priority: "0.7", changefreq: "monthly" },
   { loc: "/solutions/manufacturing", priority: "0.7", changefreq: "monthly" },
   { loc: "/solutions/fmcg", priority: "0.7", changefreq: "monthly" },
   { loc: "/solutions/retail", priority: "0.7", changefreq: "monthly" },

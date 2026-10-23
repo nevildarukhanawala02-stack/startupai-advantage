@@ -46,6 +46,11 @@ export default function Footer() {
                   Market &amp; Competitive
                 </Link>
               </li>
+              <li>
+                <Link href="/intelligence-systems/ceo-command-center" className="text-sm text-white/70 hover:text-white transition-colors">
+                  CEO Command Center
+                </Link>
+              </li>
             </ul>
           </div>
 

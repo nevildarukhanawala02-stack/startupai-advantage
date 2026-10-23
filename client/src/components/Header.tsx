@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Menu, X, ChevronDown } from "lucide-react";
 import {
@@ -14,6 +14,8 @@ import {
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [location] = useLocation();
+  const intelligenceActive = location.startsWith("/intelligence-systems") || location === "/ceo-intel-lite";
 
   const toggleSection = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -42,7 +44,7 @@ export default function Header() {
             <NavigationMenuList>
               {/* Intelligence Systems Dropdown */}
               <NavigationMenuItem>
-                <NavigationMenuTrigger className="bg-transparent text-white hover:text-secondary">
+                <NavigationMenuTrigger className={`bg-transparent hover:text-secondary ${intelligenceActive ? "text-secondary" : "text-white"}`}>
                   Intelligence Systems
                 </NavigationMenuTrigger>
                 <NavigationMenuContent className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 border border-cyan-500/30 shadow-2xl">
@@ -84,6 +86,18 @@ export default function Header() {
                       </NavigationMenuLink>
                     </li>
                     <li className="border-t border-cyan-500/20 mt-1 pt-3">
+                      <NavigationMenuLink asChild>
+                        <Link href="/intelligence-systems/ceo-command-center">
+                          <a className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-secondary/20 hover:border-l-4 hover:border-secondary focus:bg-secondary/20">
+                            <div className="text-sm font-medium leading-none text-white">CEO Command Center</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-300">
+                              Informed decisions for D2C brands, from your own numbers
+                            </p>
+                          </a>
+                        </Link>
+                      </NavigationMenuLink>
+                    </li>
+                    <li>
                       <NavigationMenuLink asChild>
                         <Link href="/ceo-intel-lite">
                           <a className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-secondary/20 hover:border-l-4 hover:border-secondary focus:bg-secondary/20">
@@ -320,8 +334,13 @@ export default function Header() {
                       <span className="text-cyan-400">📊</span> Market & Competitive
                     </a>
                   </Link>
-                  <Link href="/ceo-intel-lite">
+                  <Link href="/intelligence-systems/ceo-command-center">
                     <a className="flex items-center gap-2 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-secondary/20 rounded-lg transition-colors border-t border-cyan-500/20 mt-1 pt-3" onClick={() => setMobileMenuOpen(false)}>
+                      <span className="text-cyan-400">🧭</span> CEO Command Center
+                    </a>
+                  </Link>
+                  <Link href="/ceo-intel-lite">
+                    <a className="flex items-center gap-2 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-secondary/20 rounded-lg transition-colors" onClick={() => setMobileMenuOpen(false)}>
                       <span className="text-cyan-400">💡</span> CEO Intel Lite
                     </a>
                   </Link>
