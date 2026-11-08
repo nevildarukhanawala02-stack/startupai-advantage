@@ -47,8 +47,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/intelligence-systems/ceo-command-center" className="text-sm text-white/70 hover:text-white transition-colors">
-                  CEO Command Center
+                <Link href="/ceo-sherpa" className="text-sm text-white/70 hover:text-white transition-colors">
+                  CEO Sherpa for D2C Brands
                 </Link>
               </li>
             </ul>
