@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { CEO_COMMAND_CENTER_META, CEO_COMMAND_CENTER_FAQS } from "@shared/ceoCommandCenter";
+import { CEO_SHERPA_META, CEO_SHERPA_FAQS } from "@shared/ceoSherpa";
 
 /**
  * CEO Command Center product page.
@@ -178,10 +178,10 @@ const WHY_US = [
   },
 ];
 
-export default function CeoCommandCenter() {
+export default function CeoSherpa() {
   // Client-side head tags. Crawlers get the same tags from server/pageMetaSSR.ts.
   useEffect(() => {
-    const m = CEO_COMMAND_CENTER_META;
+    const m = CEO_SHERPA_META;
     const prevTitle = document.title;
     document.title = m.title;
 
@@ -220,7 +220,7 @@ export default function CeoCommandCenter() {
     ld.text = JSON.stringify({
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      mainEntity: CEO_COMMAND_CENTER_FAQS.map((f) => ({
+      mainEntity: CEO_SHERPA_FAQS.map((f) => ({
         "@type": "Question",
         name: f.q,
         acceptedAnswer: { "@type": "Answer", text: f.aPlain },
@@ -513,7 +513,7 @@ export default function CeoCommandCenter() {
           <div className="max-w-3xl mx-auto">
             <SectionHeading>Questions CEOs Ask</SectionHeading>
             <Accordion type="single" collapsible className="space-y-4">
-              {CEO_COMMAND_CENTER_FAQS.map((f, i) => (
+              {CEO_SHERPA_FAQS.map((f, i) => (
                 <AccordionItem
                   key={f.q}
                   value={`item-${i + 1}`}
