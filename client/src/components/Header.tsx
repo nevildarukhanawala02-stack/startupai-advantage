@@ -15,7 +15,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [location] = useLocation();
-  const intelligenceActive = location.startsWith("/intelligence-systems") || location === "/ceo-intel-lite";
+  const intelligenceActive = location.startsWith("/intelligence-systems") || location === "/ceo-intel-lite" || location === "/ceo-sherpa";
 
   const toggleSection = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -87,11 +87,11 @@ export default function Header() {
                     </li>
                     <li className="border-t border-cyan-500/20 mt-1 pt-3">
                       <NavigationMenuLink asChild>
-                        <Link href="/intelligence-systems/ceo-command-center">
+                        <Link href="/ceo-sherpa">
                           <a className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-secondary/20 hover:border-l-4 hover:border-secondary focus:bg-secondary/20">
-                            <div className="text-sm font-medium leading-none text-white">CEO Command Center</div>
+                            <div className="text-sm font-medium leading-none text-white">CEO Sherpa for D2C Brands</div>
                             <p className="line-clamp-2 text-sm leading-snug text-gray-300">
-                              Informed decisions for D2C brands, from your own numbers
+                              Shows D2C founders what to look at first, and why.
                             </p>
                           </a>
                         </Link>
@@ -334,9 +334,9 @@ export default function Header() {
                       <span className="text-cyan-400">📊</span> Market & Competitive
                     </a>
                   </Link>
-                  <Link href="/intelligence-systems/ceo-command-center">
+                  <Link href="/ceo-sherpa">
                     <a className="flex items-center gap-2 px-4 py-3 text-sm text-gray-300 hover:text-white hover:bg-secondary/20 rounded-lg transition-colors border-t border-cyan-500/20 mt-1 pt-3" onClick={() => setMobileMenuOpen(false)}>
-                      <span className="text-cyan-400">🧭</span> CEO Command Center
+                      <span className="text-cyan-400">🧭</span> CEO Sherpa for D2C Brands
                     </a>
                   </Link>
                   <Link href="/ceo-intel-lite">

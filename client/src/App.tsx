@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Redirect, Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
@@ -18,7 +18,8 @@ import Contact from "./pages/Contact";
 import Resources from "./pages/Resources";
 import GetStarted from "./pages/GetStarted";
 import CeoIntelLite from "./pages/CeoIntelLite";
-import CeoCommandCenter from "./pages/CeoCommandCenter";
+import CeoSherpa from "./pages/CeoSherpa";
+import { CEO_SHERPA_LEGACY_PATHS, CEO_SHERPA_PATH } from "@shared/ceoSherpa";
 import AdminLeads from "./pages/AdminLeads";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
@@ -51,7 +52,10 @@ function Router() {
       <Route path="/intelligence-systems/revenue-growth" component={RevenueGrowth} />
       <Route path="/intelligence-systems/operational-excellence" component={OperationalExcellence} />
       <Route path="/intelligence-systems/market-competitive" component={MarketCompetitive} />
-      <Route path="/intelligence-systems/ceo-command-center" component={CeoCommandCenter} />
+      <Route path={CEO_SHERPA_PATH} component={CeoSherpa} />
+      {CEO_SHERPA_LEGACY_PATHS.map((legacyPath) => (
+        <Route key={legacyPath} path={legacyPath}>{() => <Redirect to={CEO_SHERPA_PATH} />}</Route>
+      ))}
       
       {/* Solutions */}
       <Route path="/solutions/manufacturing" component={Manufacturing} />
