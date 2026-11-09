@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import {
   CEO_SHERPA_FAQS,
+  CEO_SHERPA_LEGACY_PATHS,
   CEO_SHERPA_META,
   CEO_SHERPA_PATH,
 } from "../shared/ceoSherpa";
@@ -64,6 +65,22 @@ function ceoSherpaHtml(template: string): string {
 const ROUTES: Record<string, (template: string) => string> = {
   [CEO_SHERPA_PATH]: ceoSherpaHtml,
 };
+
+/**
+ * Retired product-page paths: permanent redirect to the CEO Sherpa page, query string kept.
+ * Mounted in server/_core/index.ts directly before pageMetaSSRMiddleware().
+ */
+export function ceoSherpaLegacyRedirect() {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    const p = req.path.replace(/\/+$/, "") || "/";
+    if (CEO_SHERPA_LEGACY_PATHS.includes(p)) {
+      const qs = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+      return res.redirect(301, CEO_SHERPA_PATH + qs);
+    }
+    next();
+  };
+}
 
 export function pageMetaSSRMiddleware() {
   const indexPath = path.resolve(import.meta.dirname, "public", "index.html");

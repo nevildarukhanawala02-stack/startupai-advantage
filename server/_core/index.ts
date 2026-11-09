@@ -9,8 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { blogSSRMiddleware } from "../blogSSR";
-import { pageMetaSSRMiddleware } from "../pageMetaSSR";
-import { CEO_SHERPA_LEGACY_PATHS, CEO_SHERPA_PATH } from "../../shared/ceoSherpa";
+import { ceoSherpaLegacyRedirect, pageMetaSSRMiddleware } from "../pageMetaSSR";
 import { sitemapMiddleware, robotsTxtMiddleware } from "../sitemap";
 import { registerStorageProxy } from "./storageProxy";
 
@@ -65,15 +64,7 @@ async function startServer() {
   app.use(blogSSRMiddleware());
 
   // Retired product-page paths: permanent redirect to the CEO Sherpa page, query string kept
-  app.use((req, res, next) => {
-    if (req.method !== "GET" && req.method !== "HEAD") return next();
-    const p = req.path.replace(/\/+$/, "") || "/";
-    if (CEO_SHERPA_LEGACY_PATHS.includes(p)) {
-      const qs = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
-      return res.redirect(301, CEO_SHERPA_PATH + qs);
-    }
-    next();
-  });
+  app.use(ceoSherpaLegacyRedirect());
 
   // Per-route head tags (title, description, social, canonical, FAQ schema) for product pages
   app.use(pageMetaSSRMiddleware());
