@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import CeoSherpaStrip from "@/components/CeoSherpaStrip";
 
 export default function Home() {
   return (
@@ -50,16 +51,15 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-2">
                 <Check className="h-5 w-5 text-secondary" />
-                <span>Results in 20–30 Days</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-5 w-5 text-secondary" />
                 <span>Works With Your Existing Systems</span>
               </div>
             </div>
           </div>
         </div>
       </section>
+
+      {/* CEO Sherpa strip */}
+      <CeoSherpaStrip />
 
       {/* The Feeling Section - NEW */}
       <section className="py-24 bg-gradient-to-b from-gray-950 to-gray-900">
