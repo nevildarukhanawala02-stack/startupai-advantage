@@ -61,6 +61,10 @@ const SHERPA_CSS = `
 .sherpa-page .sherpa-btn-light{background:var(--paper);color:var(--ink);border-color:var(--paper)}
 .sherpa-page .sherpa-btn-light:hover{background:var(--mint);border-color:var(--mint)}
 .sherpa-page .sherpa-link{color:var(--forest);font-weight:600;text-underline-offset:3px}
+.sherpa-page .sherpa-hero{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:2.5rem;align-items:center}
+.sherpa-page .sherpa-hero-icon{display:flex;justify-content:center;align-items:center}
+.sherpa-page .sherpa-hero-icon img{width:100%;max-width:20rem;height:auto;border-radius:2.25rem;box-shadow:0 24px 48px -20px rgba(20,40,29,.45)}
+@media (max-width:900px){.sherpa-page .sherpa-hero{grid-template-columns:minmax(0,1fr)}.sherpa-page .sherpa-hero-icon{order:-1;justify-content:flex-start}.sherpa-page .sherpa-hero-icon img{max-width:7rem;border-radius:1.5rem}}
 .sherpa-page .sherpa-small{font-size:.9rem;color:var(--stone)}
 .sherpa-page .sherpa-demo{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:.75rem;letter-spacing:.1em;color:var(--stone);margin-top:1rem}
 .sherpa-page .sherpa-takeaway{background:var(--mint);border-left:5px solid var(--forest);border-radius:.25rem;padding:1.1rem 1.4rem;margin-top:2.5rem;max-width:46rem}
@@ -390,7 +394,8 @@ export default function CeoSherpa() {
       <main className="sherpa-page flex-1">
         {/* 1. Hero */}
         <Section tone="paper">
-          <div className="sherpa-narrow sherpa-stack" style={{ paddingTop: "1.5rem" }}>
+          <div className="sherpa-hero" style={{ paddingTop: "1.5rem" }}>
+          <div className="sherpa-stack">
             <p className="sherpa-label">CEO SHERPA FOR D2C BRANDS</p>
             <h1>Know what to look at, and why.</h1>
             <p className="sherpa-lead" style={{ color: "var(--ink)" }}>
@@ -406,6 +411,10 @@ export default function CeoSherpa() {
               </a>
             </p>
             <p className="sherpa-small">Examples on this page come from a demo brand with sample data.</p>
+          </div>
+          <div className="sherpa-hero-icon">
+            <img src="/ceo-sherpa-icon.svg" alt="CEO Sherpa" width={320} height={320} />
+          </div>
           </div>
         </Section>
 
