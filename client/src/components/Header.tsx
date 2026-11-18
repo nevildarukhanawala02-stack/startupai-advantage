@@ -209,16 +209,8 @@ export default function Header() {
             </NavigationMenuList>
           </NavigationMenu>
 
-          <Link href="/how-it-works" className="text-sm font-medium text-white hover:text-secondary transition-colors">
-            How It Works
-          </Link>
-
           <Link href="/about" className="text-sm font-medium text-white hover:text-secondary transition-colors">
             About
-          </Link>
-
-          <Link href="/our-story" className="text-sm font-medium text-white hover:text-secondary transition-colors">
-            Our Story
           </Link>
 
           <Link href="/contact" className="text-sm font-medium text-white hover:text-secondary transition-colors">
@@ -387,19 +379,9 @@ export default function Header() {
             <div className="border-t border-slate-700/50 my-1" />
 
             {/* Direct links with larger touch targets */}
-            <Link href="/how-it-works">
-              <a className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-200 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                How It Works
-              </a>
-            </Link>
             <Link href="/about">
               <a className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-200 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors" onClick={() => setMobileMenuOpen(false)}>
                 About
-              </a>
-            </Link>
-            <Link href="/our-story">
-              <a className="flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-gray-200 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors" onClick={() => setMobileMenuOpen(false)}>
-                Our Story
               </a>
             </Link>
             <Link href="/resources">
