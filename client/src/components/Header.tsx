@@ -203,15 +203,35 @@ export default function Header() {
                         </Link>
                       </NavigationMenuLink>
                     </li>
+                    <li>
+                      <NavigationMenuLink asChild>
+                        <Link href="/blog">
+                          <a className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-secondary/20 hover:border-l-4 hover:border-secondary focus:bg-secondary/20">
+                            <div className="text-sm font-medium leading-none text-white">Blog</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-300">
+                              Insights on AI and business intelligence
+                            </p>
+                          </a>
+                        </Link>
+                      </NavigationMenuLink>
+                    </li>
+                    <li>
+                      <NavigationMenuLink asChild>
+                        <Link href="/about">
+                          <a className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-secondary/20 hover:border-l-4 hover:border-secondary focus:bg-secondary/20">
+                            <div className="text-sm font-medium leading-none text-white">About</div>
+                            <p className="line-clamp-2 text-sm leading-snug text-gray-300">
+                              Who we are and what we do
+                            </p>
+                          </a>
+                        </Link>
+                      </NavigationMenuLink>
+                    </li>
                   </ul>
                 </NavigationMenuContent>
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
-
-          <Link href="/about" className="text-sm font-medium text-white hover:text-secondary transition-colors">
-            About
-          </Link>
 
           <Link href="/contact" className="text-sm font-medium text-white hover:text-secondary transition-colors">
             Contact
@@ -219,10 +239,6 @@ export default function Header() {
 
           <Link href="/pricing" className="text-sm font-medium text-white hover:text-secondary transition-colors">
             Pricing
-          </Link>
-
-          <Link href="/blog" className="text-sm font-medium text-white hover:text-secondary transition-colors">
-            Blog
           </Link>
 
           {/* Demos Dropdown */}
