@@ -11,7 +11,12 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 
-export default function Header() {
+type HeaderProps = {
+  /** Landing-page mode: logo and one inquiry button only, so ad visitors have a single way forward. */
+  minimal?: { ctaHref: string; ctaLabel: string; onCtaClick?: () => void };
+};
+
+export default function Header({ minimal }: HeaderProps = {}) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [location] = useLocation();
@@ -20,6 +25,35 @@ export default function Header() {
   const toggleSection = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
   };
+
+  if (minimal) {
+    return (
+      <header className="sticky top-0 z-50 w-full border-b border-cyan-500/20 backdrop-blur-md" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}>
+        <div className="container flex h-16 items-center justify-between">
+          <Link href="/">
+            <span className="flex items-center gap-2.5 hover:opacity-90 transition-opacity">
+              <img
+                src="https://d2xsxph8kpxj0f.cloudfront.net/310419663029826184/CgvvmT3FZx4wCtzFFPC889/logo-light_a4146e64.png"
+                alt="StartupAI Advantage Logo"
+                className="h-10 w-10 object-contain flex-shrink-0"
+              />
+              <span className="text-lg md:text-xl text-white leading-tight">
+                <span className="font-light tracking-wide">StartupAI</span><span className="font-extrabold tracking-tight"> Advantage</span>
+              </span>
+            </span>
+          </Link>
+          <Link
+            href={minimal.ctaHref}
+            onClick={minimal.onCtaClick}
+            className="rounded-md px-4 py-2 text-sm font-semibold text-white"
+            style={{ background: '#F26522' }}
+          >
+            {minimal.ctaLabel}
+          </Link>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-cyan-500/20 backdrop-blur-md" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #0f4c75 50%, #1e293b 75%, #0f172a 100%)' }}>

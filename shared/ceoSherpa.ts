@@ -8,6 +8,8 @@
 
 // Canonical host matches the rest of the site (server/sitemap.ts and blogSSR.ts use the non-www host).
 export const CEO_SHERPA_PATH = "/ceo-sherpa";
+// Short inquiry form for visitors who arrive from the CEO Sherpa page. Not indexed.
+export const CEO_SHERPA_TALK_PATH = "/ceo-sherpa/talk";
 // Retired product-page paths. Both 301 to CEO_SHERPA_PATH (server/_core/index.ts) and
 // redirect client-side (client/src/App.tsx).
 export const CEO_SHERPA_LEGACY_PATHS = [

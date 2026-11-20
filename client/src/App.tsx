@@ -19,7 +19,8 @@ import Resources from "./pages/Resources";
 import GetStarted from "./pages/GetStarted";
 import CeoIntelLite from "./pages/CeoIntelLite";
 import CeoSherpa from "./pages/CeoSherpa";
-import { CEO_SHERPA_LEGACY_PATHS, CEO_SHERPA_PATH } from "@shared/ceoSherpa";
+import CeoSherpaTalk from "./pages/CeoSherpaTalk";
+import { CEO_SHERPA_LEGACY_PATHS, CEO_SHERPA_PATH, CEO_SHERPA_TALK_PATH } from "@shared/ceoSherpa";
 import AdminLeads from "./pages/AdminLeads";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
@@ -53,6 +54,7 @@ function Router() {
       <Route path="/intelligence-systems/operational-excellence" component={OperationalExcellence} />
       <Route path="/intelligence-systems/market-competitive" component={MarketCompetitive} />
       <Route path={CEO_SHERPA_PATH} component={CeoSherpa} />
+      <Route path={CEO_SHERPA_TALK_PATH} component={CeoSherpaTalk} />
       {CEO_SHERPA_LEGACY_PATHS.map((legacyPath) => (
         <Route key={legacyPath} path={legacyPath}>{() => <Redirect to={CEO_SHERPA_PATH} />}</Route>
       ))}

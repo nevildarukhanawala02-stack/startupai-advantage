@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
-import { trackPageView, trackPageDuration } from "@/lib/analytics";
+import { trackPageView, trackPageDuration, trackAdLanding } from "@/lib/analytics";
+import { captureAttribution, hasAdParams } from "@/lib/attribution";
 
 /**
  * Fires a page_view analytics event on every route change, and a page_time
@@ -28,6 +29,15 @@ export default function RouteTracker() {
       trackPageView(location);
     }
   }, [location]);
+
+  useEffect(() => {
+    // Remember the ad source once per visit, and log the landing with its query string so
+    // campaigns can be told apart in analytics.
+    if (hasAdParams()) {
+      captureAttribution();
+      trackAdLanding(window.location.pathname + window.location.search);
+    }
+  }, []);
 
   useEffect(() => {
     // pagehide fires reliably on tab close / navigation away from the site,

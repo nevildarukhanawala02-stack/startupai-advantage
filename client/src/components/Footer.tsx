@@ -1,7 +1,31 @@
 import { Link } from "wouter";
 
-export default function Footer() {
+export default function Footer({ minimal = false }: { minimal?: boolean } = {}) {
   const currentYear = new Date().getFullYear();
+
+  if (minimal) {
+    // Landing-page mode: no site map, so ad visitors are not sent elsewhere. Legal links stay.
+    return (
+      <footer className="border-t border-secondary/20 bg-gradient-to-b from-gray-900 to-gray-950">
+        <div className="container py-8 flex flex-col md:flex-row justify-between items-center gap-4">
+          <p className="text-sm text-white/70">
+            © {currentYear} StartupAI Advantage. All rights reserved.
+          </p>
+          <div className="flex gap-6">
+            <Link href="/privacy-policy" className="text-sm text-white/70 hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="/terms-of-service" className="text-sm text-white/70 hover:text-white transition-colors">
+              Terms of Service
+            </Link>
+            <Link href="/cookie-policy" className="text-sm text-white/70 hover:text-white transition-colors">
+              Cookie Policy
+            </Link>
+          </div>
+        </div>
+      </footer>
+    );
+  }
 
   return (
     <footer className="border-t border-secondary/20 bg-gradient-to-b from-gray-900 to-gray-950">
