@@ -91,3 +91,18 @@ export function trackPageDuration(pagePath: string, seconds: number) {
   if (seconds <= 0) return;
   track({ eventType: "page_time", pagePath, value: seconds });
 }
+
+/** A visitor arrived from an ad (the URL carried utm_* or a click id). pagePath keeps the query so campaigns can be told apart. */
+export function trackAdLanding(pathWithQuery: string) {
+  track({ eventType: "ad_landing", pagePath: pathWithQuery.slice(0, 255) });
+}
+
+/** A click on an inquiry button. placement names where it sat (hero, mid_page, closing, header), max 32 characters. */
+export function trackCtaClick(placement: string) {
+  track({ eventType: "cta_click", entityType: placement.slice(0, 32) });
+}
+
+/** The Sherpa inquiry form was sent. */
+export function trackInquirySubmit() {
+  track({ eventType: "sherpa_inquiry_submit", entityType: "ceo_sherpa" });
+}

@@ -8,7 +8,8 @@ import {
 } from "@/components/ui/accordion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { CEO_SHERPA_META, CEO_SHERPA_FAQS } from "@shared/ceoSherpa";
+import { CEO_SHERPA_META, CEO_SHERPA_FAQS, CEO_SHERPA_TALK_PATH } from "@shared/ceoSherpa";
+import { trackCtaClick } from "@/lib/analytics";
 
 /**
  * CEO Sherpa page.
@@ -101,6 +102,13 @@ const SHERPA_CSS = `
 .sherpa-page .sherpa-line li:last-child::before{background:var(--orange);border-color:var(--orange)}
 @media (max-width:640px){.sherpa-page .sherpa-line{grid-template-columns:minmax(0,1fr);gap:.75rem}.sherpa-page .sherpa-line::before{display:none}.sherpa-page .sherpa-line li{text-align:left;padding:0 0 0 2rem}.sherpa-page .sherpa-line li::before{left:0;margin-left:0}}
 .sherpa-page .sherpa-faq-item{background:#fff;border:1px solid var(--sage);border-radius:.5rem;padding:0 1.25rem}
+.sherpa-page .sherpa-today{margin-top:2.5rem}
+.sherpa-page .sherpa-today .sherpa-card h3{font-size:1.1rem}
+.sherpa-page .sherpa-today .sherpa-card{display:flex;flex-direction:column}
+.sherpa-page .sherpa-today .sherpa-card>.sherpa-fine{margin-top:auto;padding-top:.75rem}
+.sherpa-page .sherpa-fine{font-size:.92rem;color:var(--stone)}
+.sherpa-page .sherpa-inline-cta{margin-top:2.5rem;display:flex;gap:1rem 1.5rem;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--sage);border-radius:.75rem;padding:1.1rem 1.4rem}
+.sherpa-page .sherpa-inline-cta p{font-family:'Source Serif 4',Georgia,serif;font-weight:600;font-size:1.2rem;flex:1 1 16rem}
 .sherpa-page .sherpa-band{background:var(--forest)}
 .sherpa-page .sherpa-band h2,.sherpa-page .sherpa-band p{color:var(--paper)}
 .sherpa-page .sherpa-band a.sherpa-small{color:var(--paper)}
@@ -116,6 +124,34 @@ function Confirm({ children }: { children: React.ReactNode }) {
 
 function DemoLabel() {
   return <p className="sherpa-demo">{DEMO_LABEL}</p>;
+}
+
+/** Inquiry button. Logs where on the page it was clicked, so the placements can be compared. */
+function CtaLink({
+  placement,
+  className,
+  children,
+}: {
+  placement: string;
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link href={CEO_SHERPA_TALK_PATH} className={className} onClick={() => trackCtaClick(placement)}>
+      {children}
+    </Link>
+  );
+}
+
+function InlineCta({ placement, text }: { placement: string; text: string }) {
+  return (
+    <div className="sherpa-inline-cta">
+      <p>{text}</p>
+      <CtaLink placement={placement} className="sherpa-btn">
+        Talk to us about your numbers
+      </CtaLink>
+    </div>
+  );
 }
 
 type ChipKind = "record" | "estimate" | "told" | "assumed";
@@ -174,6 +210,10 @@ const ONE_PAGE_POINTS: { title: string; text: string }[] = [
   {
     title: "You stop deciding where to start.",
     text: "Instead of opening many tools to find the problem, you open one short list, each item with the money at stake and the date it matters.",
+  },
+  {
+    title: "You know what a new customer really costs.",
+    text: "Sherpa counts the all-in cost of winning a new customer: the ad spend, the discount given, and returns and cash on delivery on the first order. It sets that against what the customer brings back. The formula is set with you, for how your business sells.",
   },
   {
     title: "You can check every figure.",
@@ -388,7 +428,13 @@ export default function CeoSherpa() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
+      <Header
+        minimal={{
+          ctaHref: CEO_SHERPA_TALK_PATH,
+          ctaLabel: "Talk to us",
+          onCtaClick: () => trackCtaClick("header"),
+        }}
+      />
       <style>{SHERPA_CSS}</style>
 
       <main className="sherpa-page flex-1">
@@ -403,9 +449,9 @@ export default function CeoSherpa() {
               why. You decide. It never acts on its own.
             </p>
             <p style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", alignItems: "center" }}>
-              <Link href="/get-started" className="sherpa-btn">
+              <CtaLink placement="hero" className="sherpa-btn">
                 Talk to us about your numbers
-              </Link>
+              </CtaLink>
               <a href="#how-it-works" className="sherpa-link">
                 See how it works
               </a>
@@ -415,6 +461,44 @@ export default function CeoSherpa() {
           <div className="sherpa-hero-icon">
             <img src="/ceo-sherpa-icon.svg" alt="CEO Sherpa" width={320} height={320} />
           </div>
+          </div>
+
+          <div className="sherpa-today" aria-label="A sample of today's list">
+            <p className="sherpa-label">TODAY&rsquo;S LIST, FROM A DEMO BRAND</p>
+            <div className="sherpa-grid sherpa-g3" style={{ marginTop: ".9rem" }}>
+              <article className="sherpa-card">
+                <div>
+                  <span className="sherpa-class">FIX</span>
+                </div>
+                <h3>Meta, prospecting: its real return fell from 1.9x to 0.5x in three days.</h3>
+                <p className="sherpa-fine">
+                  ₹32,600 to ₹65,201 at stake over 60 days <Chip kind="estimate" />
+                </p>
+              </article>
+              <article className="sherpa-card">
+                <div>
+                  <span className="sherpa-class">STOP THE LOSS</span>
+                </div>
+                <h3>Google search, non-brand, is losing money on every order.</h3>
+                <p className="sherpa-fine">
+                  1.5 real return, against 2.2 reported by the platform <Chip kind="record" />
+                </p>
+              </article>
+              <article className="sherpa-card">
+                <div>
+                  <span className="sherpa-class">PROTECT</span>
+                </div>
+                <h3>The hero hair oil will run out before new stock can arrive.</h3>
+                <p className="sherpa-fine">₹2.32 lakh to ₹3.94 lakh at stake over 60 days</p>
+              </article>
+            </div>
+            <p className="sherpa-small" style={{ marginTop: ".9rem" }}>
+              Each item shows its money, its date and what it rests on.{" "}
+              <a href="#how-it-works" className="sherpa-link">
+                See one in full
+              </a>
+              . {DEMO_LABEL}.
+            </p>
           </div>
         </Section>
 
@@ -626,6 +710,7 @@ export default function CeoSherpa() {
             Three things, not thirty. Each comes with its money, its date and its reason, so you
             can decide in minutes instead of searching for hours.
           </Takeaway>
+          <InlineCta placement="mid_page" text="Want to see this on your own numbers?" />
 
           <div className="sherpa-narrow sherpa-stack" style={{ marginTop: "3rem" }}>
             <h3>Every card tells you the same story</h3>
@@ -854,6 +939,7 @@ export default function CeoSherpa() {
             Silence is information. You always know what was checked, what was found fine, and
             what could not be checked. The limits are part of the design.
           </Takeaway>
+          <InlineCta placement="after_trust" text="Ready to see what it would say about your business?" />
         </Section>
 
         {/* 10. How we start */}
@@ -995,21 +1081,16 @@ export default function CeoSherpa() {
                 need to prepare anything beyond a list.
               </p>
               <p>
-                <Link href="/get-started" className="sherpa-btn sherpa-btn-light">
+                <CtaLink placement="closing" className="sherpa-btn sherpa-btn-light">
                   Talk to us about your numbers
-                </Link>
-              </p>
-              <p className="sherpa-small">
-                <Link href="/pricing" className="sherpa-small" style={{ color: "var(--paper)" }}>
-                  Pricing
-                </Link>
+                </CtaLink>
               </p>
             </div>
           </div>
         </section>
       </main>
 
-      <Footer />
+      <Footer minimal />
     </div>
   );
 }
